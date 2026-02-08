@@ -1,254 +1,795 @@
-<!DOCTYPE html>
-<html lang="en">
+Now I'll create the complete single HTML file with all features:
+Action: file_editor create /app/fitness-motivation.html --file-text "<!DOCTYPE html>
+<html lang=\"en\">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discipline Fitness Hub</title>
-<style>
-:root{
-  --bg:#0d1117;
-  --card:#161b22;
-  --accent:#1e90ff;
-  --text:#e6e6e6;
-  --muted:#9aa4b2;
-  --shadow:rgba(30,144,255,0.2);
-}
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>Fitness & Motivation - Transform Your Life</title>
+    
+    <style>
+        /* ===========================
+           GLOBAL RESET & VARIABLES
+           =========================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
-body{background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;}
-a{text-decoration:none;color:var(--accent);}
-img{max-width:100%;border-radius:10px;}
+        :root {
+            --color-black: #0a0a0a;
+            --color-dark-blue: #0d1b2a;
+            --color-deep-blue: #1b263b;
+            --color-accent-blue: #2563eb;
+            --color-light-blue: #3b82f6;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #cbd5e1;
+            --color-text-muted: #94a3b8;
+        }
 
-/* NAVBAR */
-header{
-  position:fixed;top:0;width:100%;background:rgba(11,18,32,.95);
-  backdrop-filter:blur(10px);z-index:1000;
-}
-.nav{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;padding:15px;}
-.logo{font-weight:700;letter-spacing:1px;font-size:20px;}
-.menu-btn{font-size:26px;cursor:pointer;display:none;}
-.nav-links{display:flex;gap:20px;}
-.nav-links a{font-size:15px;padding:5px;}
-.nav-links a:hover{color:var(--accent);transition:.3s;}
-@media(max-width:768px){
-  .menu-btn{display:block;}
-  .nav-links{
-    position:absolute;top:60px;left:0;width:100%;
-    background:var(--card);flex-direction:column;text-align:center;
-    max-height:0;overflow:hidden;transition:.4s;
-  }
-  .nav-links.active{max-height:500px;}
-}
+        html {
+            scroll-behavior: smooth;
+        }
 
-/* HERO */
-.hero{
-  min-height:80vh;
-  display:flex;align-items:center;justify-content:center;text-align:center;
-  padding:120px 20px 60px;
-  background: url('https://source.unsplash.com/1600x900/?fitness,workout') center/cover no-repeat;
-}
-.hero h1{font-size:40px;margin-bottom:15px;color:#fff;text-shadow:2px 2px 8px #000;}
-.hero p{color:#cfd8dc;font-size:18px;max-width:600px;margin:auto;text-shadow:1px 1px 5px #000;}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--color-black) 0%, var(--color-dark-blue) 100%);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
 
-/* SECTIONS */
-section{max-width:1100px;margin:auto;padding:80px 20px;}
-h2{color:var(--accent);font-size:28px;text-align:center;margin-bottom:40px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:25px;}
+        /* ===========================
+           NAVIGATION
+           =========================== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
 
-/* CARD */
-.card{
-  position:relative;
-  background:var(--card);
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 0 20px var(--shadow);
-  opacity:0; transform:translateY(50px);
-  transition:all 0.7s ease-out;
-  overflow:hidden;
-}
-.card.show{opacity:1; transform:translateY(0);}
-.card h3{margin-bottom:10px;color:var(--accent);}
-.card p{color:var(--muted);margin-bottom:10px;font-size:15px;}
-.card .more{display:none;color:#aaa;font-size:14px;margin-top:5px;}
-.card button.more-btn{
-  background:var(--accent);color:#fff;padding:5px 10px;border:none;border-radius:5px;cursor:pointer;font-size:13px;
-}
-.card button.more-btn:hover{opacity:.9;transition:.3s;}
-.card img{width:100%;margin-bottom:12px;border-radius:10px;}
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-/* SUBSCRIBE FORM */
-.subscribe{
-  background:linear-gradient(135deg,#0e1a33,#0b1220);
-  border-radius:15px;
-  padding:40px;
-  text-align:center;
-  color:#fff;
-}
-.subscribe input{
-  padding:12px;
-  width:260px;
-  max-width:100%;
-  border:none;border-radius:8px;margin-top:15px;
-  background:#121619;color:#fff;
-}
-.subscribe button{
-  margin-top:15px;padding:12px 25px;border:none;
-  background:var(--accent);color:#fff;border-radius:8px;cursor:pointer;
-}
-.subscribe button:hover{opacity:.9;transition:.3s;}
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--color-light-blue);
+            text-decoration: none;
+        }
 
-/* FOOTER */
-footer{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
-</style>
+        /* Hamburger menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            gap: 5px;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background: var(--color-text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(8px, 8px);
+        }
+
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: var(--color-light-blue);
+        }
+
+        /* ===========================
+           HERO SECTION
+           =========================== */
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1734189605012-f03d97a4d98f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwyfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85') center/cover;
+            filter: brightness(0.4);
+            z-index: -1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            padding: 0 2rem;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: var(--color-accent-blue);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .cta-button:hover {
+            background: var(--color-light-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        /* ===========================
+           SECTIONS
+           =========================== */
+        section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--color-light-blue);
+        }
+
+        /* ===========================
+           CARDS
+           =========================== */
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .card {
+            background: var(--color-deep-blue);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        .card.visible {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(37, 99, 235, 0.3);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--color-light-blue);
+        }
+
+        .card-description {
+            color: var(--color-text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .card-extra {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, margin-top 0.5s ease;
+            color: var(--color-text-muted);
+            line-height: 1.6;
+        }
+
+        .card-extra.expanded {
+            max-height: 500px;
+            margin-top: 1rem;
+        }
+
+        .read-more-btn {
+            background: transparent;
+            border: 2px solid var(--color-accent-blue);
+            color: var(--color-accent-blue);
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .read-more-btn:hover {
+            background: var(--color-accent-blue);
+            color: white;
+        }
+
+        /* ===========================
+           JOIN SECTION (Email Form)
+           =========================== */
+        .join-section {
+            background: var(--color-deep-blue);
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .email-form {
+            max-width: 500px;
+            margin: 2rem auto 0;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .email-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 1rem;
+            border: 2px solid var(--color-accent-blue);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border-radius: 30px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .email-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--color-light-blue);
+        }
+
+        .email-input.error {
+            border-color: #ef4444;
+        }
+
+        .submit-btn {
+            padding: 1rem 2rem;
+            background: var(--color-accent-blue);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background: var(--color-light-blue);
+            transform: scale(1.05);
+        }
+
+        .form-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .form-message.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid #22c55e;
+        }
+
+        .form-message.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        /* ===========================
+           FOOTER
+           =========================== */
+        footer {
+            background: var(--color-black);
+            padding: 2rem;
+            text-align: center;
+            color: var(--color-text-muted);
+        }
+
+        .warning {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            border-radius: 10px;
+            color: #fca5a5;
+            font-weight: 600;
+        }
+
+        /* ===========================
+           ANIMATIONS
+           =========================== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===========================
+           RESPONSIVE DESIGN
+           =========================== */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .nav-menu {
+                position: fixed;
+                left: -100%;
+                top: 70px;
+                flex-direction: column;
+                background: rgba(10, 10, 10, 0.98);
+                width: 100%;
+                text-align: center;
+                transition: left 0.3s ease;
+                padding: 2rem 0;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            }
+
+            .nav-menu.active {
+                left: 0;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+
+            .email-form {
+                flex-direction: column;
+            }
+
+            .email-input {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .navbar {
+                padding: 1rem;
+            }
+
+            section {
+                padding: 3rem 1rem;
+            }
+
+            .join-section {
+                padding: 2rem 1rem;
+            }
+        }
+    </style>
 </head>
-
 <body>
+    <!-- ===========================
+         NAVIGATION BAR
+         =========================== -->
+    <nav class=\"navbar\">
+        <div class=\"nav-container\">
+            <a href=\"#hero\" class=\"logo\">FitMotivate</a>
+            <div class=\"hamburger\" id=\"hamburger\">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class=\"nav-menu\" id=\"navMenu\">
+                <li><a href=\"#hero\">Home</a></li>
+                <li><a href=\"#workouts\">Workouts</a></li>
+                <li><a href=\"#nutrition\">Nutrition</a></li>
+                <li><a href=\"#mindset\">Mindset</a></li>
+                <li><a href=\"#recovery\">Recovery</a></li>
+                <li><a href=\"#join\">Join Us</a></li>
+            </ul>
+        </div>
+    </nav>
 
-<header>
-  <div class="nav">
-    <div class="logo">Discipline Fitness</div>
-    <div class="menu-btn" id="menuBtn">☰</div>
-    <div class="nav-links" id="navLinks">
-      <a href="#about">About</a>
-      <a href="#benefits">Benefits</a>
-      <a href="#nutrition">Nutrition</a>
-      <a href="#join">Join</a>
-    </div>
-  </div>
-</header>
+    <!-- ===========================
+         HERO SECTION
+         =========================== -->
+    <section id=\"hero\" class=\"hero\">
+        <div class=\"hero-background\"></div>
+        <div class=\"hero-content\">
+            <h1>Transform Your Life</h1>
+            <p>Start your fitness journey today and become the best version of yourself</p>
+            <a href=\"#workouts\" class=\"cta-button\">Get Started</a>
+        </div>
+    </section>
 
-<div class="hero">
-  <div>
-    <h1>Discipline & Strength</h1>
-    <p>Explore workouts, nutrition tips, and build a disciplined life.</p>
-  </div>
-</div>
+    <!-- ===========================
+         WORKOUTS SECTION
+         =========================== -->
+    <section id=\"workouts\">
+        <h2 class=\"section-title\">Powerful Workouts</h2>
+        <div class=\"cards-container\">
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1734189605012-f03d97a4d98f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwyfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Kickboxing workout\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Strength Training</h3>
+                    <p class=\"card-description\">Build muscle and increase your overall strength with our comprehensive training programs designed for all fitness levels.</p>
+                    <div class=\"card-extra\">
+                        Our strength training programs focus on compound movements that engage multiple muscle groups. From beginners to advanced athletes, we provide progressive overload techniques, proper form guidance, and nutrition tips to maximize your gains. Each workout is designed to push your limits while ensuring safety and effectiveness.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
 
-<section id="about">
-  <h2>Workouts</h2>
-  <div class="grid">
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?pushup,workout" alt="Pushups">
-      <h3>Pushups</h3>
-      <p>Pushups strengthen chest, arms, shoulders and core.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Doing 20-50 per day improves endurance, builds stability, and tones muscles effectively.</p>
-    </div>
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?situp,exercise" alt="Situps">
-      <h3>Situps</h3>
-      <p>Core exercise targeting abs and hip flexors.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Consistent practice enhances posture, balance, and strengthens lower back muscles.</p>
-    </div>
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?plank,fitness" alt="Plank">
-      <h3>Plank</h3>
-      <p>Engages core, back, shoulders, and legs.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Start with 30s-1min daily. Improves stability, posture, and overall core strength.</p>
-    </div>
-  </div>
-</section>
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1765302907822-33032f78eb2c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwzfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Kettlebell training\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Functional Fitness</h3>
+                    <p class=\"card-description\">Improve your everyday movements with functional training that enhances mobility, balance, and core strength.</p>
+                    <div class=\"card-extra\">
+                        Functional fitness prepares your body for real-life activities. Our programs incorporate kettlebells, bodyweight exercises, and dynamic movements that improve coordination and prevent injuries. You'll develop practical strength that translates to better performance in daily tasks and sports.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
 
-<section id="benefits">
-  <h2>Exercise Benefits</h2>
-  <div class="grid">
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?strength,training" alt="Strength">
-      <h3>Muscle Strength</h3>
-      <p>Resistance training boosts muscle mass.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Increasing muscle mass enhances metabolism, daily performance, and athletic ability.</p>
-    </div>
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?cardio,workout" alt="Cardio">
-      <h3>Cardio Health</h3>
-      <p>Improves heart, lungs, and endurance.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Regular cardio reduces risk of heart disease, increases energy, and helps fat loss.</p>
-    </div>
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?flexibility,fitness" alt="Flexibility">
-      <h3>Flexibility</h3>
-      <p>Daily stretches reduce injuries.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Improves range of motion, posture, and overall body mobility.</p>
-    </div>
-  </div>
-</section>
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1738523686787-7bdf0e63c8f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHw0fHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Gym training\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Cardio Conditioning</h3>
+                    <p class=\"card-description\">Boost your endurance and burn calories with high-intensity cardio workouts that get your heart pumping.</p>
+                    <div class=\"card-extra\">
+                        Cardiovascular conditioning is essential for heart health and fat loss. Our HIIT and steady-state cardio programs are designed to improve your aerobic capacity, increase stamina, and accelerate your metabolism. Whether you prefer running, cycling, or circuit training, we have options for everyone.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<section id="nutrition">
-  <h2>Nutrition Tips</h2>
-  <div class="grid">
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?healthy-food" alt="Nutrition">
-      <h3>Protein Intake</h3>
-      <p>Essential for muscle recovery.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Include eggs, lean meats, legumes daily. Supports muscle growth and repair.</p>
-    </div>
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?fruits-vegetables" alt="Fruits & Veggies">
-      <h3>Fruits & Veggies</h3>
-      <p>High in vitamins and fiber.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Eat 3-5 servings daily to boost immunity, energy, and digestion.</p>
-    </div>
-    <div class="card">
-      <img src="https://source.unsplash.com/800x600/?water,hydration" alt="Hydration">
-      <h3>Hydration</h3>
-      <p>Maintains energy and focus.</p>
-      <button class="more-btn" onclick="this.previousElementSibling.style.display='block';this.style.display='none';">Read more</button>
-      <p class="more">Drink 1.5-3L water daily depending on activity level to optimize metabolism.</p>
-    </div>
-  </div>
-</section>
+    <!-- ===========================
+         NUTRITION SECTION
+         =========================== -->
+    <section id=\"nutrition\">
+        <h2 class=\"section-title\">Nutrition Guidance</h2>
+        <div class=\"cards-container\">
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1741156229623-da94e6d7977d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Healthy nutrition\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Meal Planning</h3>
+                    <p class=\"card-description\">Learn how to fuel your body properly with balanced meal plans tailored to your fitness goals.</p>
+                    <div class=\"card-extra\">
+                        Nutrition is 80% of your fitness success. We provide customized meal plans that align with your training regimen. Whether you're looking to build muscle, lose fat, or maintain weight, our nutrition strategies focus on whole foods, proper macronutrient ratios, and sustainable eating habits that you can maintain for life.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
 
-<section id="join">
-  <div class="subscribe card">
-    <h2>Join Our Community</h2>
-    <p>Get notified when new fitness content drops.</p>
-    <input type="email" id="emailInput" placeholder="Your email">
-    <br>
-    <button onclick="subscribeEmail()">Subscribe</button>
-    <p id="msg" style="margin-top:10px;color:var(--accent);"></p>
-  </div>
-</section>
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1734189605012-f03d97a4d98f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwyfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Supplements\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Supplement Guide</h3>
+                    <p class=\"card-description\">Discover which supplements can enhance your performance and recovery when used correctly.</p>
+                    <div class=\"card-extra\">
+                        While whole foods should be your foundation, certain supplements can optimize your results. We'll guide you through evidence-based supplementation including protein powders, creatine, vitamins, and pre-workout formulas. Learn what works, what doesn't, and how to avoid wasting money on unnecessary products.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<footer>
-  © 2026 Discipline Fitness Hub. All rights reserved.
-</footer>
+    <!-- ===========================
+         MINDSET SECTION
+         =========================== -->
+    <section id=\"mindset\">
+        <h2 class=\"section-title\">Mental Strength</h2>
+        <div class=\"cards-container\">
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1765302907822-33032f78eb2c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwzfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Mental strength\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Goal Setting</h3>
+                    <p class=\"card-description\">Master the art of setting and achieving realistic fitness goals that keep you motivated.</p>
+                    <div class=\"card-extra\">
+                        Success starts in the mind. Learn proven goal-setting techniques that transform vague wishes into concrete action plans. We'll teach you how to break down big goals into manageable milestones, track your progress effectively, and maintain motivation even when challenges arise. Your mindset determines your success.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
 
-<script>
-// MENU TOGGLE
-const menuBtn=document.getElementById("menuBtn");
-const navLinks=document.getElementById("navLinks");
-menuBtn.onclick=()=>navLinks.classList.toggle("active");
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1738523686787-7bdf0e63c8f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHw0fHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Motivation\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Stay Motivated</h3>
+                    <p class=\"card-description\">Develop habits and strategies to maintain long-term motivation and consistency.</p>
+                    <div class=\"card-extra\">
+                        Motivation fluctuates, but discipline is constant. We'll help you build systems and routines that keep you consistent even on days when you don't feel like training. Learn to embrace the process, celebrate small wins, and develop an unstoppable mindset that carries you through plateaus and setbacks.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
-// SCROLL ANIMATION
-const cards=document.querySelectorAll(".card");
-const reveal=()=>{
-  const trigger=window.innerHeight*0.85;
-  cards.forEach(card=>{
-    const top=card.getBoundingClientRect().top;
-    if(top<trigger){card.classList.add("show");}
-  });
-};
-window.addEventListener("scroll",reveal);
-window.addEventListener("load",reveal);
+    <!-- ===========================
+         RECOVERY SECTION
+         =========================== -->
+    <section id=\"recovery\">
+        <h2 class=\"section-title\">Recovery & Wellness</h2>
+        <div class=\"cards-container\">
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1741156229623-da94e6d7977d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Recovery\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Rest & Sleep</h3>
+                    <p class=\"card-description\">Understand the critical role of quality sleep and rest days in your fitness journey.</p>
+                    <div class=\"card-extra\">
+                        Recovery is where growth happens. Learn how to optimize your sleep schedule, create a restful environment, and understand the science behind muscle recovery. We'll show you why rest days are just as important as training days and how to listen to your body's signals to prevent overtraining.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
 
-// EMAIL SUBSCRIBE (Frontend)
-function subscribeEmail(){
-  const input=document.getElementById("emailInput");
-  const msg=document.getElementById("msg");
-  if(input.value.includes("@")){
-    msg.textContent="Thanks! We'll notify you soon.";
-    input.value="";
-  }else{
-    msg.textContent="Please enter a valid email!";
-  }
-}
-</script>
+            <div class=\"card\">
+                <img src=\"https://images.unsplash.com/photo-1734189605012-f03d97a4d98f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwyfHxmaXRuZXNzJTIwd29ya291dCUyMGd5bSUyMG1vdGl2YXRpb258ZW58MHx8fHwxNzcwNTQ5OTI4fDA&ixlib=rb-4.1.0&q=85\" alt=\"Stretching\" class=\"card-image\">
+                <div class=\"card-content\">
+                    <h3 class=\"card-title\">Mobility & Stretching</h3>
+                    <p class=\"card-description\">Improve flexibility and prevent injuries with proper stretching and mobility work.</p>
+                    <div class=\"card-extra\">
+                        Flexibility and mobility are often overlooked but essential components of fitness. Our stretching protocols help reduce muscle tension, improve range of motion, and accelerate recovery. Incorporate dynamic warm-ups and static cool-downs to enhance performance and minimize injury risk throughout your training.
+                    </div>
+                    <button class=\"read-more-btn\" onclick=\"toggleExpand(this)\">Read More</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===========================
+         JOIN SECTION (Email Subscription)
+         =========================== -->
+    <section id=\"join\">
+        <div class=\"join-section\">
+            <h2 class=\"section-title\">Join Our Community</h2>
+            <p class=\"card-description\">Subscribe to receive exclusive workout plans, nutrition tips, and motivational content delivered to your inbox.</p>
+            
+            <form class=\"email-form\" id=\"emailForm\">
+                <input 
+                    type=\"email\" 
+                    class=\"email-input\" 
+                    id=\"emailInput\" 
+                    placeholder=\"Enter your email address\" 
+                    required
+                >
+                <button type=\"submit\" class=\"submit-btn\">Subscribe</button>
+            </form>
+            
+            <div class=\"form-message\" id=\"formMessage\"></div>
+        </div>
+    </section>
+
+    <!-- ===========================
+         FOOTER
+         =========================== -->
+    <footer>
+        <p>&copy; 2026 FitMotivate. All rights reserved.</p>
+        <div class=\"warning\">
+            ⚠️ This site is for personal use only. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- ===========================
+         JAVASCRIPT
+         =========================== -->
+    <script>
+        // ===========================
+        // HAMBURGER MENU TOGGLE
+        // ===========================
+        const hamburger = document.getElementById('hamburger');
+        const navMenu = document.getElementById('navMenu');
+
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a link
+        document.querySelectorAll('.nav-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+            });
+        });
+
+        // ===========================
+        // SCROLL ANIMATIONS
+        // ===========================
+        const observerOptions = {
+            threshold: 0.2,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all cards
+        document.querySelectorAll('.card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // ===========================
+        // READ MORE / EXPAND CARD
+        // ===========================
+        function toggleExpand(button) {
+            const card = button.closest('.card-content');
+            const extraContent = card.querySelector('.card-extra');
+            
+            extraContent.classList.toggle('expanded');
+            
+            if (extraContent.classList.contains('expanded')) {
+                button.textContent = 'Read Less';
+            } else {
+                button.textContent = 'Read More';
+            }
+        }
+
+        // ===========================
+        // EMAIL FORM VALIDATION
+        // ===========================
+        const emailForm = document.getElementById('emailForm');
+        const emailInput = document.getElementById('emailInput');
+        const formMessage = document.getElementById('formMessage');
+
+        emailForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            
+            // Basic email validation regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!email) {
+                showMessage('Please enter your email address.', 'error');
+                emailInput.classList.add('error');
+                return;
+            }
+            
+            if (!emailRegex.test(email)) {
+                showMessage('Please enter a valid email address.', 'error');
+                emailInput.classList.add('error');
+                return;
+            }
+            
+            // If validation passes
+            emailInput.classList.remove('error');
+            showMessage('Thank you for subscribing! Check your inbox soon.', 'success');
+            emailInput.value = '';
+            
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                formMessage.style.display = 'none';
+            }, 5000);
+        });
+
+        // Remove error styling when user starts typing
+        emailInput.addEventListener('input', () => {
+            emailInput.classList.remove('error');
+        });
+
+        function showMessage(message, type) {
+            formMessage.textContent = message;
+            formMessage.className = `form-message ${type}`;
+            formMessage.style.display = 'block';
+        }
+
+        // ===========================
+        // SMOOTH SCROLL (for older browsers)
+        // ===========================
+        document.querySelectorAll('a[href^=\"#\"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
 </body>
-</html>
+</html>"
+Observation: Create successful: /app/fitness-motivation.html
