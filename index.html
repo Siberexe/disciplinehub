@@ -1,255 +1,1138 @@
-<!DOCTYPE html>
-<html lang="en">
+I have all the images. Now let me create the single HTML file with everything embedded. I'll also set up the frontend to serve it.
+
+<Plan>
+1. Create the complete single HTML file at `/app/frontend/public/fitness.html` with all CSS/JS embedded
+2. Modify App.js to redirect to `/fitness.html`
+3. Test via screenshot
+4. Run testing agent
+</Plan>
+Action: file_editor create /app/frontend/public/fitness.html --file-text "<!DOCTYPE html>
+<html lang=\"en\">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discipline Fitness Hub</title>
+<meta charset=\"UTF-8\">
+<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+<title>FORGE — Discipline. Strength. Results.</title>
+
+<!-- ========== ALL STYLES EMBEDDED ========== -->
 <style>
-/* ---------------- RESET ---------------- */
-* { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
-body { background-color:#0d1117; color:#fff; line-height:1.6; scroll-behavior:smooth; }
+/* ===== CSS RESET & BASE ===== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-/* ---------------- HAMBURGER MENU ---------------- */
-.menu-toggle { position:fixed; top:20px; right:20px; cursor:pointer; z-index:1000; }
-.menu-toggle div { width:35px; height:5px; background-color:#1e90ff; margin:6px 0; transition:0.4s; }
-.navbar { position:fixed; top:0; right:-250px; width:250px; height:100%; background:#111827; padding-top:60px; transition:0.5s; z-index:999; }
-.navbar a { display:block; padding:15px 30px; font-size:18px; border-bottom:1px solid #1e90ff; transition:0.3s; }
-.navbar a:hover { background-color:#1e90ff; color:#0d1117; }
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0d1117;
+  --bg-card: #111827;
+  --bg-card-hover: #1a2332;
+  --accent: #3b82f6;
+  --accent-glow: #2563eb;
+  --accent-bright: #60a5fa;
+  --text-primary: #e4e4e7;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --border: #1e293b;
+  --success: #10b981;
+  --danger: #ef4444;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+}
 
-/* ---------------- HERO SECTION ---------------- */
-.hero { height:100vh; background-image:url('https://images.unsplash.com/photo-1599058917216-0f273b17c4a6?auto=format&fit=crop&w=1950&q=80'); background-size:cover; background-position:center; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; position:relative; }
-.hero::after { content:""; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); }
-.hero-content { position:relative; z-index:1; }
-.hero h1 { font-size:3rem; color:#1e90ff; margin-bottom:20px; text-shadow:2px 2px 5px #000; }
-.hero p { font-size:1.2rem; max-width:600px; color:#fff; text-shadow:1px 1px 3px #000; }
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Barlow:wght@300;400;500;600&display=swap');
 
-/* ---------------- SECTIONS ---------------- */
-section { padding:80px 20px; max-width:1200px; margin:auto; position:relative; }
-section h2 { font-size:2rem; color:#1e90ff; margin-bottom:40px; text-align:center; }
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
 
-/* ---------------- CARDS ---------------- */
-.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
-.card { background:#111827; border-radius:10px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.5); transition:transform 0.3s; position:relative; }
-.card img { width:100%; height:200px; object-fit:cover; transition:transform 0.5s; }
-.card:hover img { transform:scale(1.05); }
-.card-content { padding:20px; }
-.card-content h3 { margin-bottom:15px; color:#1e90ff; }
-.card-content p { margin-bottom:10px; font-size:0.95rem; }
-.read-more { background:#1e90ff; color:#0d1117; padding:8px 12px; border:none; cursor:pointer; border-radius:5px; transition:0.3s; }
-.read-more:hover { background:#0a74d1; }
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
 
-/* ---------------- FOOTER ---------------- */
-footer { padding:40px 20px; text-align:center; background:#111827; border-top:2px solid #1e90ff; margin-top:60px; }
-footer p { font-size:0.9rem; color:#888; }
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
 
-/* ---------------- EMAIL FORM ---------------- */
-.email-form { display:flex; flex-direction:column; align-items:center; max-width:400px; margin:auto; }
-.email-form input { padding:10px; width:100%; border-radius:5px; border:none; margin-bottom:15px; }
-.email-form button { padding:10px 20px; border:none; border-radius:5px; background:#1e90ff; color:#0d1117; cursor:pointer; transition:0.3s; }
-.email-form button:hover { background:#0a74d1; }
-.email-message { margin-top:10px; font-size:0.9rem; }
+/* ===== HAMBURGER MENU ===== */
+.menu-toggle {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.3s ease;
+}
 
-/* ---------------- SCROLL ANIMATIONS ---------------- */
-.fade-up { opacity:0; transform:translateY(50px); transition:all 0.8s ease-out; }
-.fade-up.visible { opacity:1; transform:translateY(0); }
+.menu-toggle:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
 
-/* ---------------- MEDIA QUERIES ---------------- */
-@media(max-width:768px) { .hero h1 { font-size:2.2rem; } .hero p { font-size:1rem; } }
-@media(max-width:480px) { .navbar { width:200px; } .navbar a { font-size:16px; padding:12px 20px; } }
+.menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-primary);
+  transition: all 0.35s cubic-bezier(0.77, 0, 0.175, 1);
+  transform-origin: center;
+}
 
-/* ---------------- ADDITIONAL DECOR ---------------- */
-section::before { content:""; position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; background:linear-gradient(to bottom, rgba(30,144,255,0.1), transparent 80%); }
-.card::after { content:""; position:absolute; bottom:0; left:0; width:100%; height:50%; background:linear-gradient(to top,rgba(0,0,0,0.4),transparent); pointer-events:none; }
+.menu-toggle.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.menu-toggle.active span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.menu-toggle.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
+
+/* ===== SLIDE-IN NAV ===== */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.nav-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.slide-nav {
+  position: fixed;
+  top: 0;
+  right: -340px;
+  width: 320px;
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  z-index: 999;
+  transition: right 0.45s cubic-bezier(0.77, 0, 0.175, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 100px 40px 40px;
+}
+
+.slide-nav.active {
+  right: 0;
+}
+
+.slide-nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  transition: all 0.3s ease;
+  display: block;
+}
+
+.slide-nav a:hover {
+  color: var(--accent-bright);
+  padding-left: 12px;
+}
+
+.slide-nav .nav-label {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+/* ===== HERO SECTION ===== */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80') center/cover no-repeat;
+  filter: brightness(0.25) saturate(0.8);
+  transform: scale(1.05);
+  transition: transform 8s ease;
+}
+
+.hero:hover .hero-bg {
+  transform: scale(1.1);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,15,0.4) 0%, rgba(10,10,15,0.85) 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 0 24px;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: heroFadeIn 1.2s ease 0.3s forwards;
+}
+
+@keyframes heroFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-tag {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 24px;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+
+.hero-title .accent {
+  color: var(--accent);
+}
+
+.hero-sub {
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
+  color: var(--text-secondary);
+  max-width: 520px;
+  margin: 0 auto 40px;
+  font-weight: 300;
+}
+
+.hero-cta {
+  display: inline-block;
+  padding: 14px 42px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-cta:hover {
+  background: var(--accent-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: heroFadeIn 1.2s ease 1.5s forwards;
+}
+
+.scroll-indicator span {
+  font-size: 0.65rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.scroll-line {
+  width: 1px;
+  height: 40px;
+  background: var(--text-muted);
+  position: relative;
+  overflow: hidden;
+}
+
+.scroll-line::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--accent-bright);
+  animation: scrollDown 1.8s ease infinite;
+}
+
+@keyframes scrollDown {
+  0% { top: -100%; }
+  100% { top: 100%; }
+}
+
+/* ===== SECTION BASE ===== */
+.section {
+  position: relative;
+  min-height: 100vh;
+  padding: 120px 24px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.section-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.15) saturate(0.6);
+}
+
+.section-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* ===== REVEAL ANIMATIONS ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal-left.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Staggered delays */
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
+.delay-4 { transition-delay: 0.4s; }
+
+/* ===== SECTION TAG / TITLE ===== */
+.section-tag {
+  font-size: 0.7rem;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.05;
+  margin-bottom: 24px;
+}
+
+.section-desc {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 560px;
+  line-height: 1.8;
+  font-weight: 300;
+}
+
+/* ===== SPLIT LAYOUT ===== */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.split-image {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+}
+
+.split-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.split-image:hover img {
+  transform: scale(1.05);
+}
+
+.split-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* ===== CARDS GRID ===== */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 32px;
+  transition: all 0.35s ease;
+  cursor: default;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.card-text {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+/* ===== READ MORE ===== */
+.read-more-toggle {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  transition: color 0.3s ease;
+}
+
+.read-more-toggle:hover {
+  color: #93c5fd;
+}
+
+.read-more-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease, opacity 0.4s ease;
+  opacity: 0;
+}
+
+.read-more-content.expanded {
+  max-height: 400px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.read-more-content p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+/* ===== NUTRITION LISTS ===== */
+.nutrition-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.nutrition-list {
+  list-style: none;
+}
+
+.nutrition-list h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.nutrition-list.eat h3 { color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
+.nutrition-list.avoid h3 { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
+
+.nutrition-list li {
+  padding: 10px 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 300;
+}
+
+.nutrition-list li .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nutrition-list.eat li .dot { background: var(--success); }
+.nutrition-list.avoid li .dot { background: var(--danger); }
+
+/* ===== SUBSCRIBE SECTION ===== */
+.subscribe-section {
+  background: var(--bg-secondary);
+  text-align: center;
+  min-height: auto;
+  padding: 100px 24px;
+}
+
+.subscribe-form {
+  display: flex;
+  gap: 0;
+  max-width: 480px;
+  margin: 32px auto 0;
+}
+
+.subscribe-form input {
+  flex: 1;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.subscribe-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.subscribe-form input:focus {
+  border-color: var(--accent);
+}
+
+.subscribe-form button {
+  padding: 16px 32px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.subscribe-form button:hover {
+  background: var(--accent-glow);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+}
+
+.subscribe-msg {
+  margin-top: 16px;
+  font-size: 0.85rem;
+  height: 24px;
+  transition: all 0.3s ease;
+}
+
+.subscribe-msg.success { color: var(--success); }
+.subscribe-msg.error { color: var(--danger); }
+
+/* ===== STATS BAR ===== */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 80px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  color: var(--accent-bright);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ===== DIVIDER ===== */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  padding: 40px 24px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.footer p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .split {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .split.reverse .split-image {
+    order: -1;
+  }
+
+  .nutrition-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bar {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .subscribe-form {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .subscribe-form input {
+    border-right: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  .subscribe-form button {
+    border-radius: 4px;
+  }
+
+  .section {
+    padding: 80px 20px;
+  }
+
+  .menu-toggle {
+    top: 16px;
+    right: 16px;
+  }
+
+  .slide-nav {
+    width: 280px;
+    right: -300px;
+    padding: 80px 28px 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bar {
+    grid-template-columns: 1fr 1fr;
+    padding: 60px 20px;
+  }
+}
 </style>
 </head>
+
 <body>
 
-<!-- ---------------- HAMBURGER MENU ---------------- -->
-<div class="menu-toggle" onclick="toggleMenu()">
-  <div></div>
-  <div></div>
-  <div></div>
-</div>
-<nav class="navbar" id="navbar">
-  <a href="#workouts">Workouts</a>
-  <a href="#benefits">Benefits</a>
-  <a href="#nutrition">Nutrition</a>
-  <a href="#join">Join</a>
+<!-- ========== HAMBURGER MENU BUTTON ========== -->
+<button class=\"menu-toggle\" id=\"menuToggle\" data-testid=\"menu-toggle\" aria-label=\"Toggle navigation\">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+
+<!-- ========== NAV OVERLAY ========== -->
+<div class=\"nav-overlay\" id=\"navOverlay\" data-testid=\"nav-overlay\"></div>
+
+<!-- ========== SLIDE-IN NAVIGATION ========== -->
+<nav class=\"slide-nav\" id=\"slideNav\" data-testid=\"slide-nav\">
+  <div class=\"nav-label\">Navigation</div>
+  <a href=\"#home\" data-testid=\"nav-home\">Home</a>
+  <a href=\"#workouts\" data-testid=\"nav-workouts\">Workouts</a>
+  <a href=\"#benefits\" data-testid=\"nav-benefits\">Benefits</a>
+  <a href=\"#nutrition\" data-testid=\"nav-nutrition\">Nutrition</a>
+  <a href=\"#subscribe\" data-testid=\"nav-subscribe\">Subscribe</a>
 </nav>
 
-<!-- ---------------- HERO SECTION ---------------- -->
-<section class="hero">
-  <div class="hero-content">
-    <h1>Discipline Fitness Hub</h1>
-    <p>Push yourself every day. Explore workouts, benefits, and nutrition tips to maximize your fitness journey.</p>
+<!-- ========== HERO SECTION ========== -->
+<section class=\"hero\" id=\"home\" data-testid=\"hero-section\">
+  <div class=\"hero-bg\"></div>
+  <div class=\"hero-overlay\"></div>
+  <div class=\"hero-content\">
+    <p class=\"hero-tag\">Discipline over motivation</p>
+    <h1 class=\"hero-title\">
+      Forge<br>Your <span class=\"accent\">Legacy</span>
+    </h1>
+    <p class=\"hero-sub\">
+      No shortcuts. No excuses. Every rep counts. Every set builds the person you're becoming.
+    </p>
+    <a href=\"#workouts\" class=\"hero-cta\" data-testid=\"hero-cta\">Begin Training</a>
+  </div>
+  <div class=\"scroll-indicator\">
+    <span>Scroll</span>
+    <div class=\"scroll-line\"></div>
   </div>
 </section>
 
-<!-- ---------------- WORKOUTS SECTION ---------------- -->
-<section id="workouts">
-  <h2>Workouts</h2>
-  <div class="cards">
-    <!-- Card 1 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1599058917216-0f273b17c4a6?auto=format&fit=crop&w=800&q=80" alt="Pushups">
-      <div class="card-content">
-        <h3>Pushups</h3>
-        <p>Pushups strengthen your chest, shoulders, and triceps. Great for upper body strength.</p>
-        <p class="extra-text" style="display:none;">Do 3 sets of 12 daily. Keep your core tight for maximum effect. Breathing is essential: inhale down, exhale up.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
+<!-- ========== STATS BAR ========== -->
+<div class=\"stats-bar\" data-testid=\"stats-bar\">
+  <div class=\"stat-item reveal\">
+    <div class=\"stat-number\" data-testid=\"stat-pushups\">500+</div>
+    <div class=\"stat-label\">Push-ups weekly</div>
+  </div>
+  <div class=\"stat-item reveal delay-1\">
+    <div class=\"stat-number\">300+</div>
+    <div class=\"stat-label\">Sit-ups weekly</div>
+  </div>
+  <div class=\"stat-item reveal delay-2\">
+    <div class=\"stat-number\">7</div>
+    <div class=\"stat-label\">Days discipline</div>
+  </div>
+  <div class=\"stat-item reveal delay-3\">
+    <div class=\"stat-number\">100%</div>
+    <div class=\"stat-label\">Commitment</div>
+  </div>
+</div>
+
+<div class=\"divider\"></div>
+
+<!-- ========== PUSH-UPS SECTION ========== -->
+<section class=\"section\" id=\"workouts\" data-testid=\"pushups-section\">
+  <div class=\"section-bg\" style=\"background-image: url('https://images.unsplash.com/photo-1686247166156-0bca3e8b55d9?w=1920&q=80');\"></div>
+  <div class=\"section-gradient\" style=\"background: linear-gradient(135deg, rgba(10,10,15,0.92) 0%, rgba(10,10,15,0.75) 100%);\"></div>
+  <div class=\"section-inner\">
+    <div class=\"split\">
+      <div class=\"reveal-left\">
+        <p class=\"section-tag\">Foundation Movement</p>
+        <h2 class=\"section-title\">The Power of<br>Push-Ups</h2>
+        <p class=\"section-desc\">
+          Push-ups are the cornerstone of bodyweight training. They build raw upper body strength, improve posture, and forge mental toughness — one rep at a time.
+        </p>
+
+        <!-- Read More -->
+        <button class=\"read-more-toggle\" data-testid=\"pushups-read-more\" onclick=\"toggleReadMore(this)\">Read more +</button>
+        <div class=\"read-more-content\">
+          <p>
+            Push-ups engage your chest, shoulders, triceps, and core simultaneously. They're scalable — from wall push-ups for beginners to explosive clap variations for advanced athletes. Doing push-ups consistently improves bone density, increases metabolic rate, and builds functional strength that translates to everyday movements. Start with 3 sets of 10 and progressively increase volume weekly.
+          </p>
+        </div>
       </div>
-    </div>
-    <!-- Card 2 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1599058917216-0f273b17c4a6?auto=format&fit=crop&w=800&q=80" alt="Situps">
-      <div class="card-content">
-        <h3>Situps</h3>
-        <p>Situps target your core muscles, improving posture and stability.</p>
-        <p class="extra-text" style="display:none;">Start with 3 sets of 15 reps. Gradually increase reps over time for better endurance.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 3 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1599058917216-0f273b17c4a6?auto=format&fit=crop&w=800&q=80" alt="Plank">
-      <div class="card-content">
-        <h3>Plank</h3>
-        <p>Planks build core endurance, balance, and overall strength.</p>
-        <p class="extra-text" style="display:none;">Hold for 30-60 seconds. Keep your body straight, and focus on your breathing. Add variations like side planks.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 4 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Lunges">
-      <div class="card-content">
-        <h3>Lunges</h3>
-        <p>Lunges strengthen legs and glutes, improve balance.</p>
-        <p class="extra-text" style="display:none;">Do 3 sets of 10 reps per leg. Keep your back straight and step far enough for full range of motion.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 5 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Squats">
-      <div class="card-content">
-        <h3>Squats</h3>
-        <p>Squats strengthen your legs, glutes, and core.</p>
-        <p class="extra-text" style="display:none;">Perform 3 sets of 15 reps. Keep your knees aligned with your toes. Add weights for more intensity.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 6 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Burpees">
-      <div class="card-content">
-        <h3>Burpees</h3>
-        <p>Burpees are full-body exercises that build strength and endurance.</p>
-        <p class="extra-text" style="display:none;">Do 3 sets of 10 reps. Keep a steady pace to avoid burnout. Focus on form over speed.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 7 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Mountain Climbers">
-      <div class="card-content">
-        <h3>Mountain Climbers</h3>
-        <p>Cardio and core workout in one move.</p>
-        <p class="extra-text" style="display:none;">Perform for 30-45 seconds per set. Keep your core tight and back flat.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 8 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Jumping Jacks">
-      <div class="card-content">
-        <h3>Jumping Jacks</h3>
-        <p>Classic cardio exercise for stamina and warm-up.</p>
-        <p class="extra-text" style="display:none;">Perform for 30-60 seconds. Keep arms fully extended for maximum effect.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 9 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Yoga">
-      <div class="card-content">
-        <h3>Yoga</h3>
-        <p>Flexibility, balance, and relaxation.</p>
-        <p class="extra-text" style="display:none;">Practice daily or several times per week. Focus on breathing and posture.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <!-- Card 10 -->
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1605296867304-46d5465a13f1?auto=format&fit=crop&w=800&q=80" alt="Meditation">
-      <div class="card-content">
-        <h3>Meditation</h3>
-        <p>Improve mental health, focus, and relaxation.</p>
-        <p class="extra-text" style="display:none;">Spend 5-15 minutes daily. Use guided sessions if needed.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
+      <div class=\"split-image reveal-right\">
+        <img src=\"https://images.unsplash.com/photo-1686247166156-0bca3e8b55d9?w=800&q=80\" alt=\"Person performing push-ups\" loading=\"lazy\">
       </div>
     </div>
   </div>
 </section>
 
-<!-- ---------------- BENEFITS SECTION ---------------- -->
-<section id="benefits">
-  <h2>Benefits of Exercises</h2>
-  <div class="cards">
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1554284126-7bd27e98aef7?auto=format&fit=crop&w=800&q=80" alt="Strength">
-      <div class="card-content">
-        <h3>Muscle Strength</h3>
-        <p>Regular strength training builds muscles and increases metabolism.</p>
-        <p class="extra-text" style="display:none;">Combine with proper nutrition for best results. Include protein-rich foods and stay hydrated.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
+<!-- ========== SIT-UPS SECTION ========== -->
+<section class=\"section\" id=\"benefits\" data-testid=\"situps-section\">
+  <div class=\"section-bg\" style=\"background-image: url('https://images.unsplash.com/photo-1534872850130-5355701fcc89?w=1920&q=80');\"></div>
+  <div class=\"section-gradient\" style=\"background: linear-gradient(225deg, rgba(10,10,15,0.92) 0%, rgba(13,17,23,0.8) 100%);\"></div>
+  <div class=\"section-inner\">
+    <div class=\"split reverse\">
+      <div class=\"split-image reveal-left\">
+        <img src=\"https://images.unsplash.com/photo-1534872850130-5355701fcc89?w=800&q=80\" alt=\"Core workout training\" loading=\"lazy\">
       </div>
-    </div>
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1554284126-7bd27e98aef7?auto=format&fit=crop&w=800&q=80" alt="Cardio">
-      <div class="card-content">
-        <h3>Cardio Health</h3>
-        <p>Cardio improves heart health, endurance, and overall fitness levels.</p>
-        <p class="extra-text" style="display:none;">Include 20-30 minutes daily for optimal results. Choose running, cycling, or swimming.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
-      </div>
-    </div>
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1554284126-7bd27e98aef7?auto=format&fit=crop&w=800&q=80" alt="Flexibility">
-      <div class="card-content">
-        <h3>Flexibility</h3>
-        <p>Stretching and yoga improve range of motion and prevent injury.</p>
-        <p class="extra-text" style="display:none;">Include 5-10 minutes of stretching post-workout for recovery.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
+      <div class=\"reveal-right\">
+        <p class=\"section-tag\">Core Strength</p>
+        <h2 class=\"section-title\">Sit-Ups:<br>Build The Core</h2>
+        <p class=\"section-desc\">
+          A strong core is the foundation of every athletic movement. Sit-ups target your abdominals, hip flexors, and lower back — building a solid center of power.
+        </p>
+
+        <button class=\"read-more-toggle\" data-testid=\"situps-read-more\" onclick=\"toggleReadMore(this)\">Read more +</button>
+        <div class=\"read-more-content\">
+          <p>
+            Beyond aesthetics, sit-ups improve spinal stability, reduce back pain, and enhance balance. Combine standard sit-ups with crunches, leg raises, and planks for complete core development. Aim for 4 sets of 15-20 reps with controlled movement — never sacrifice form for speed. Your core is your armor. Build it strong.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ---------------- NUTRITION SECTION ---------------- -->
-<section id="nutrition">
-  <h2>Nutrition Tips</h2>
-  <div class="cards">
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Protein">
-      <div class="card-content">
-        <h3>Protein Intake</h3>
-        <p>Protein supports muscle repair and growth after workouts.</p>
-        <p class="extra-text" style="display:none;">Include eggs, chicken, legumes, and dairy in your meals. Spread intake throughout the day.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
+<!-- ========== DISCIPLINE SECTION ========== -->
+<section class=\"section\" data-testid=\"discipline-section\">
+  <div class=\"section-bg\" style=\"background-image: url('https://images.unsplash.com/photo-1760876320777-636b607c5261?w=1920&q=80');\"></div>
+  <div class=\"section-gradient\" style=\"background: linear-gradient(180deg, rgba(10,10,15,0.88) 0%, rgba(10,10,15,0.95) 100%);\"></div>
+  <div class=\"section-inner\" style=\"text-align: center;\">
+    <div class=\"reveal\">
+      <p class=\"section-tag\" style=\"text-align: center;\">Mindset</p>
+      <h2 class=\"section-title\" style=\"margin: 0 auto 24px;\">Discipline Defeats<br>Motivation</h2>
+      <p class=\"section-desc\" style=\"margin: 0 auto 48px; text-align: center; max-width: 640px;\">
+        Motivation is a spark. Discipline is the furnace. The days you don't want to train are the days that define you. Show up. Put in the work. Let the results speak.
+      </p>
+    </div>
+
+    <div class=\"cards-grid\">
+      <div class=\"card reveal delay-1\" data-testid=\"card-consistency\">
+        <div class=\"card-icon\">
+          <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"22 12 18 12 15 21 9 3 6 12 2 12\"></polyline></svg>
+        </div>
+        <h3 class=\"card-title\">Consistency</h3>
+        <p class=\"card-text\">Small daily improvements compound into massive results. The secret isn't talent — it's showing up every single day.</p>
+      </div>
+      <div class=\"card reveal delay-2\" data-testid=\"card-mental-strength\">
+        <div class=\"card-icon\">
+          <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z\"></path></svg>
+        </div>
+        <h3 class=\"card-title\">Mental Strength</h3>
+        <p class=\"card-text\">Your body gives up long before your mind should. Train your mental fortitude alongside your physical strength.</p>
+      </div>
+      <div class=\"card reveal delay-3\" data-testid=\"card-no-excuses\">
+        <div class=\"card-icon\">
+          <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polygon points=\"13 2 3 14 12 14 11 22 21 10 12 10 13 2\"></polygon></svg>
+        </div>
+        <h3 class=\"card-title\">No Excuses</h3>
+        <p class=\"card-text\">Rain, cold, tired, busy — none of it matters. Champions find a way. Everyone else finds an excuse.</p>
       </div>
     </div>
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Hydration">
-      <div class="card-content">
-        <h3>Hydration</h3>
-        <p>Drink enough water to support metabolism and recovery.</p>
-        <p class="extra-text" style="display:none;">Aim for 2-3 liters daily. Increase if exercising heavily or in hot weather.</p>
-        <button class="read-more" onclick="toggleRead(this)">Read More</button>
+  </div>
+</section>
+
+<!-- ========== NUTRITION BASICS ========== -->
+<section class=\"section\" id=\"nutrition\" data-testid=\"nutrition-section\">
+  <div class=\"section-bg\" style=\"background-image: url('https://images.unsplash.com/photo-1584913855963-e0b0229af61d?w=1920&q=80');\"></div>
+  <div class=\"section-gradient\" style=\"background: linear-gradient(135deg, rgba(10,10,15,0.93) 0%, rgba(13,17,23,0.85) 100%);\"></div>
+  <div class=\"section-inner\">
+    <div class=\"split\">
+      <div class=\"reveal-left\">
+        <p class=\"section-tag\">Fuel Your Body</p>
+        <h2 class=\"section-title\">Nutrition<br>Fundamentals</h2>
+        <p class=\"section-desc\">
+          Training breaks muscle down. Nutrition builds it back stronger. What you eat determines whether your effort in the gym pays off or gets wasted.
+        </p>
+
+        <button class=\"read-more-toggle\" data-testid=\"nutrition-read-more\" onclick=\"toggleReadMore(this)\">Read more +</button>
+        <div class=\"read-more-content\">
+          <p>
+            Focus on whole foods: lean proteins for recovery, complex carbohydrates for energy, and healthy fats for hormonal balance. Eat to fuel performance, not to fill emotions. Hydration is equally critical — aim for at least 3 liters of water daily. Your diet is your secret weapon.
+          </p>
+        </div>
+      </div>
+      <div class=\"split-image reveal-right\">
+        <img src=\"https://images.unsplash.com/photo-1584913855963-e0b0229af61d?w=800&q=80\" alt=\"Healthy protein meal\" loading=\"lazy\">
       </div>
     </div>
-    <div class="card fade-up">
-      <img src="https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=800&q=80" alt="Healthy Fats">
-      <div class="card-content">
-        <h3>Healthy Fats</h3>
-        <p>Fats are essential for hormone production and brain
+  </div>
+</section>
+
+<!-- ========== WHAT TO EAT / WHAT TO AVOID ========== -->
+<section class=\"section\" data-testid=\"eat-avoid-section\">
+  <div class=\"section-bg\" style=\"background-image: url('https://images.unsplash.com/photo-1588551650401-234f93734337?w=1920&q=80');\"></div>
+  <div class=\"section-gradient\" style=\"background: linear-gradient(225deg, rgba(10,10,15,0.94) 0%, rgba(10,10,15,0.88) 100%);\"></div>
+  <div class=\"section-inner\">
+    <div class=\"reveal\">
+      <p class=\"section-tag\" style=\"text-align:center;\">Your Plate, Your Power</p>
+      <h2 class=\"section-title\" style=\"text-align:center; margin: 0 auto 16px;\">What to Eat.<br>What to Avoid.</h2>
+    </div>
+
+    <div class=\"nutrition-columns reveal delay-1\">
+      <ul class=\"nutrition-list eat\" data-testid=\"eat-list\">
+        <h3>Eat This</h3>
+        <li><span class=\"dot\"></span>Chicken breast, turkey, lean beef</li>
+        <li><span class=\"dot\"></span>Salmon, tuna, sardines</li>
+        <li><span class=\"dot\"></span>Eggs — whole, not just whites</li>
+        <li><span class=\"dot\"></span>Brown rice, sweet potatoes, oats</li>
+        <li><span class=\"dot\"></span>Broccoli, spinach, kale</li>
+        <li><span class=\"dot\"></span>Greek yogurt, cottage cheese</li>
+        <li><span class=\"dot\"></span>Almonds, walnuts, avocados</li>
+        <li><span class=\"dot\"></span>Water — at least 3 liters daily</li>
+      </ul>
+      <ul class=\"nutrition-list avoid\" data-testid=\"avoid-list\">
+        <h3>Avoid This</h3>
+        <li><span class=\"dot\"></span>Sugary drinks and energy drinks</li>
+        <li><span class=\"dot\"></span>Processed fast food</li>
+        <li><span class=\"dot\"></span>White bread and pastries</li>
+        <li><span class=\"dot\"></span>Fried foods and trans fats</li>
+        <li><span class=\"dot\"></span>Excessive alcohol</li>
+        <li><span class=\"dot\"></span>Candy, chips, packaged snacks</li>
+        <li><span class=\"dot\"></span>Artificial sweeteners</li>
+        <li><span class=\"dot\"></span>Late-night heavy meals</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========== EMAIL SUBSCRIPTION ========== -->
+<section class=\"subscribe-section\" id=\"subscribe\" data-testid=\"subscribe-section\">
+  <div class=\"section-inner reveal\">
+    <p class=\"section-tag\" style=\"text-align:center;\">Stay Locked In</p>
+    <h2 class=\"section-title\" style=\"text-align:center; margin: 0 auto 16px;\">Join The Movement</h2>
+    <p class=\"section-desc\" style=\"margin: 0 auto; text-align: center; max-width: 480px;\">
+      Get weekly training tips, nutrition guides, and motivational content delivered straight to your inbox.
+    </p>
+    <form class=\"subscribe-form\" id=\"subscribeForm\" data-testid=\"subscribe-form\" onsubmit=\"handleSubscribe(event)\">
+      <input type=\"email\" id=\"emailInput\" data-testid=\"email-input\" placeholder=\"Enter your email\" required autocomplete=\"email\">
+      <button type=\"submit\" data-testid=\"subscribe-button\">Subscribe</button>
+    </form>
+    <p class=\"subscribe-msg\" id=\"subscribeMsg\" data-testid=\"subscribe-msg\"></p>
+  </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer class=\"footer\" data-testid=\"footer\">
+  <p>This site is for personal use only. All rights reserved.</p>
+</footer>
+
+<!-- ========== ALL JAVASCRIPT EMBEDDED ========== -->
+<script>
+/* ===== HAMBURGER MENU TOGGLE ===== */
+const menuToggle = document.getElementById('menuToggle');
+const slideNav = document.getElementById('slideNav');
+const navOverlay = document.getElementById('navOverlay');
+
+function openMenu() {
+  menuToggle.classList.add('active');
+  slideNav.classList.add('active');
+  navOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMenu() {
+  menuToggle.classList.remove('active');
+  slideNav.classList.remove('active');
+  navOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+menuToggle.addEventListener('click', function() {
+  if (slideNav.classList.contains('active')) {
+    closeMenu();
+  } else {
+    openMenu();
+  }
+});
+
+navOverlay.addEventListener('click', closeMenu);
+
+/* Close menu when a nav link is clicked */
+document.querySelectorAll('.slide-nav a').forEach(function(link) {
+  link.addEventListener('click', function() {
+    closeMenu();
+  });
+});
+
+/* ===== SCROLL REVEAL ANIMATIONS ===== */
+function revealOnScroll() {
+  const elements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+  const windowHeight = window.innerHeight;
+
+  elements.forEach(function(el) {
+    const elementTop = el.getBoundingClientRect().top;
+    const revealPoint = windowHeight - 100;
+
+    if (elementTop < revealPoint) {
+      el.classList.add('visible');
+    }
+  });
+}
+
+window.addEventListener('scroll', revealOnScroll);
+window.addEventListener('load', revealOnScroll);
+
+/* ===== READ MORE TOGGLE ===== */
+function toggleReadMore(btn) {
+  const content = btn.nextElementSibling;
+  if (content.classList.contains('expanded')) {
+    content.classList.remove('expanded');
+    btn.textContent = 'Read more +';
+  } else {
+    content.classList.add('expanded');
+    btn.textContent = 'Read less -';
+  }
+}
+
+/* ===== EMAIL SUBSCRIPTION ===== */
+function handleSubscribe(e) {
+  e.preventDefault();
+  const emailInput = document.getElementById('emailInput');
+  const msg = document.getElementById('subscribeMsg');
+  const email = emailInput.value.trim();
+
+  /* Basic email validation */
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!email) {
+    msg.textContent = 'Please enter your email address.';
+    msg.className = 'subscribe-msg error';
+    return;
+  }
+
+  if (!emailRegex.test(email)) {
+    msg.textContent = 'Please enter a valid email address.';
+    msg.className = 'subscribe-msg error';
+    return;
+  }
+
+  /* Simulate subscription success */
+  msg.textContent = 'You are subscribed.';
+  msg.className = 'subscribe-msg success';
+  emailInput.value = '';
+
+  /* Clear message after 5 seconds */
+  setTimeout(function() {
+    msg.textContent = '';
+    msg.className = 'subscribe-msg';
+  }, 5000);
+}
+
+/* ===== SMOOTH SCROLL FOR ANCHOR LINKS ===== */
+document.querySelectorAll('a[href^=\"#\"]').forEach(function(anchor) {
+  anchor.addEventListener('click', function(e) {
+    e.preventDefault();
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+/* ===== KEYBOARD ESCAPE TO CLOSE MENU ===== */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeMenu();
+  }
+});
+</script>
+
+</body>
+</html>
+"
+Observation: Create successful: /app/frontend/public/fitness.html
