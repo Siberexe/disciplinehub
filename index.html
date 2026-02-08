@@ -3,180 +3,98 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DisciplineHub</title>
-
+<title>Discipline Fitness Hub</title>
 <style>
 :root{
-  --bg:#0b1220;
-  --card:#121a2f;
+  --bg:#0d1117;
+  --card:#161b22;
   --accent:#1e90ff;
   --text:#e6e6e6;
   --muted:#9aa4b2;
+  --shadow:rgba(30,144,255,0.2);
 }
 
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;}
-
-body{
-  background:var(--bg);
-  color:var(--text);
-  line-height:1.6;
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+body{background:var(--bg);color:var(--text);line-height:1.6;}
+a{text-decoration:none;color:var(--accent);}
+img{max-width:100%;border-radius:10px;}
 
 /* NAVBAR */
 header{
-  position:fixed;
-  top:0;
-  width:100%;
-  background:rgba(11,18,32,.95);
-  backdrop-filter:blur(10px);
-  z-index:1000;
+  position:fixed;top:0;width:100%;background:rgba(11,18,32,.95);
+  backdrop-filter:blur(10px);z-index:1000;
 }
-
-.nav{
-  max-width:1100px;
-  margin:auto;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px;
-}
-
-.logo{
-  font-weight:700;
-  letter-spacing:1px;
-}
-
-.menu-btn{
-  font-size:26px;
-  cursor:pointer;
-  display:none;
-}
-
-.nav-links{
-  display:flex;
-  gap:20px;
-}
-
-.nav-links a{
-  color:var(--text);
-  text-decoration:none;
-  font-size:15px;
-  transition:.3s;
-}
-
-.nav-links a:hover{
-  color:var(--accent);
-}
-
-/* MOBILE MENU */
+.nav{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;padding:15px;}
+.logo{font-weight:700;letter-spacing:1px;font-size:20px;}
+.menu-btn{font-size:26px;cursor:pointer;display:none;}
+.nav-links{display:flex;gap:20px;}
+.nav-links a{font-size:15px;padding:5px;}
+.nav-links a:hover{color:var(--accent);transition:.3s;}
 @media(max-width:768px){
   .menu-btn{display:block;}
   .nav-links{
-    position:absolute;
-    top:60px;
-    left:0;
-    width:100%;
-    background:var(--card);
-    flex-direction:column;
-    text-align:center;
-    max-height:0;
-    overflow:hidden;
-    transition:.4s;
+    position:absolute;top:60px;left:0;width:100%;
+    background:var(--card);flex-direction:column;text-align:center;
+    max-height:0;overflow:hidden;transition:.4s;
   }
-  .nav-links.active{max-height:300px;}
+  .nav-links.active{max-height:500px;}
 }
 
 /* HERO */
 .hero{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
+  min-height:80vh;
+  display:flex;align-items:center;justify-content:center;text-align:center;
   padding:120px 20px 60px;
+  background: url('https://source.unsplash.com/1600x900/?fitness,workout') center/cover no-repeat;
 }
-
-.hero h1{
-  font-size:42px;
-  margin-bottom:15px;
-}
-
-.hero p{
-  color:var(--muted);
-  max-width:600px;
-  margin:auto;
-}
+.hero h1{font-size:40px;margin-bottom:15px;color:#fff;text-shadow:2px 2px 8px #000;}
+.hero p{color:#cfd8dc;font-size:18px;max-width:600px;margin:auto;text-shadow:1px 1px 5px #000;}
 
 /* SECTIONS */
-section{
-  max-width:1100px;
-  margin:auto;
-  padding:80px 20px;
-}
+section{max-width:1100px;margin:auto;padding:80px 20px;}
+h2{color:var(--accent);font-size:28px;text-align:center;margin-bottom:40px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:25px;}
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:25px;
-}
-
-/* CARDS */
+/* CARD */
 .card{
   background:var(--card);
-  padding:25px;
-  border-radius:12px;
-  opacity:0;
-  transform:translateY(60px);
-  transition:all .7s ease;
+  padding:20px;
+  border-radius:15px;
+  box-shadow:0 0 20px var(--shadow);
+  opacity:0; transform:translateY(50px);
+  transition:all 0.7s ease-out;
+  overflow:hidden;
 }
+.card.show{opacity:1; transform:translateY(0);}
+.card h3{margin-bottom:10px;color:var(--accent);}
+.card p{color:var(--muted);margin-bottom:10px;font-size:15px;}
 
-.card.show{
-  opacity:1;
-  transform:translateY(0);
-}
-
-.card h3{
-  margin-bottom:10px;
-}
-
-.card p{
-  color:var(--muted);
-}
-
-/* EMAIL */
+/* SUBSCRIBE FORM */
 .subscribe{
   background:linear-gradient(135deg,#0e1a33,#0b1220);
   border-radius:15px;
   padding:40px;
   text-align:center;
+  color:#fff;
 }
-
 .subscribe input{
   padding:12px;
   width:260px;
   max-width:100%;
-  border:none;
-  border-radius:8px;
-  margin-top:15px;
+  border:none;border-radius:8px;margin-top:15px;
+  background:#121619;color:#fff;
 }
-
 .subscribe button{
-  margin-top:15px;
-  padding:12px 25px;
-  border:none;
-  background:var(--accent);
-  color:#fff;
-  border-radius:8px;
-  cursor:pointer;
+  margin-top:15px;padding:12px 25px;border:none;
+  background:var(--accent);color:#fff;border-radius:8px;cursor:pointer;
 }
+.subscribe button:hover{opacity:.9;transition:.3s;}
 
 /* FOOTER */
-footer{
-  text-align:center;
-  padding:30px;
-  color:var(--muted);
-  font-size:14px;
-}
+footer{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+
+/* EXTRA STYLING */
+.card img{width:100%;margin-bottom:12px;}
 </style>
 </head>
 
@@ -184,11 +102,12 @@ footer{
 
 <header>
   <div class="nav">
-    <div class="logo">DisciplineHub</div>
+    <div class="logo">Discipline Fitness</div>
     <div class="menu-btn" id="menuBtn">☰</div>
     <div class="nav-links" id="navLinks">
       <a href="#about">About</a>
-      <a href="#content">Content</a>
+      <a href="#benefits">Benefits</a>
+      <a href="#nutrition">Nutrition</a>
       <a href="#join">Join</a>
     </div>
   </div>
@@ -196,66 +115,98 @@ footer{
 
 <div class="hero">
   <div>
-    <h1>Discipline Beats Motivation</h1>
-    <p>Videos of focused, disciplined minds. No excuses. No noise.</p>
+    <h1>Strength Through Discipline</h1>
+    <p>Follow routines, exercise consistently, eat clean, and master your body and mind.</p>
   </div>
 </div>
 
 <section id="about">
+  <h2>About</h2>
   <div class="grid">
     <div class="card">
-      <h3>Focus</h3>
-      <p>Silence, control and mental strength.</p>
+      <img src="https://source.unsplash.com/400x250/?pushup,workout" alt="Pushups">
+      <h3>Pushups</h3>
+      <p>Pushups strengthen chest, arms, shoulders and core.</p>
+      <p>Doing 20-50 per day improves endurance and stability.</p>
     </div>
     <div class="card">
-      <h3>Routine</h3>
-      <p>Daily systems beat temporary motivation.</p>
+      <img src="https://source.unsplash.com/400x250/?situp,exercise" alt="Situps">
+      <h3>Situps</h3>
+      <p>Core exercise targeting abs and hip flexors.</p>
+      <p>Consistent practice enhances posture and balance.</p>
     </div>
     <div class="card">
-      <h3>Growth</h3>
-      <p>Progress is earned, not given.</p>
+      <img src="https://source.unsplash.com/400x250/?plank,fitness" alt="Plank">
+      <h3>Plank</h3>
+      <p>Engages core, back, shoulders, and legs.</p>
+      <p>Start with 30s-1min daily to build stability.</p>
     </div>
   </div>
 </section>
 
-<section id="content">
+<section id="benefits">
+  <h2>Exercise Benefits</h2>
   <div class="grid">
     <div class="card">
-      <h3>Training</h3>
-      <p>Pushups. Cold nights. No comfort.</p>
+      <img src="https://source.unsplash.com/400x250/?strength,training" alt="Strength">
+      <h3>Muscle Strength</h3>
+      <p>Regular resistance exercise boosts muscle mass and metabolism.</p>
     </div>
     <div class="card">
-      <h3>Isolation</h3>
-      <p>Alone time builds strong minds.</p>
+      <img src="https://source.unsplash.com/400x250/?cardio,workout" alt="Cardio">
+      <h3>Cardio Health</h3>
+      <p>Improves heart, lungs, and overall endurance.</p>
     </div>
     <div class="card">
-      <h3>Control</h3>
-      <p>Emotions under discipline.</p>
+      <img src="https://source.unsplash.com/400x250/?flexibility,fitness" alt="Flexibility">
+      <h3>Flexibility</h3>
+      <p>Daily stretches reduce injuries and increase range of motion.</p>
+    </div>
+  </div>
+</section>
+
+<section id="nutrition">
+  <h2>Nutrition Tips</h2>
+  <div class="grid">
+    <div class="card">
+      <img src="https://source.unsplash.com/400x250/?healthy-food" alt="Nutrition">
+      <h3>Protein Intake</h3>
+      <p>Essential for muscle recovery. Include eggs, lean meats, and legumes.</p>
+    </div>
+    <div class="card">
+      <img src="https://source.unsplash.com/400x250/?fruits-vegetables" alt="Vitamins">
+      <h3>Fruits & Veggies</h3>
+      <p>High in vitamins, minerals, and fiber. Eat 3-5 servings daily.</p>
+    </div>
+    <div class="card">
+      <img src="https://source.unsplash.com/400x250/?water,hydration" alt="Hydration">
+      <h3>Hydration</h3>
+      <p>Drinking enough water maintains energy, focus, and metabolism.</p>
     </div>
   </div>
 </section>
 
 <section id="join">
   <div class="subscribe card">
-    <h2>Join the discipline list</h2>
-    <p>Get notified when new content drops.</p>
-    <input type="email" placeholder="Email address">
+    <h2>Join Our Community</h2>
+    <p>Get notified when new fitness content drops.</p>
+    <input type="email" placeholder="Your email">
     <br>
     <button>Subscribe</button>
   </div>
 </section>
 
 <footer>
-  © 2026 DisciplineHub. All rights reserved.
+  © 2026 Discipline Fitness Hub. All rights reserved.
 </footer>
 
 <script>
-/* MENU */
+// MENU TOGGLE
 const menuBtn=document.getElementById("menuBtn");
 const navLinks=document.getElementById("navLinks");
 menuBtn.onclick=()=>navLinks.classList.toggle("active");
 
-/* SCROLL ANIMATION */
+// SCROLL ANIMATION
 const cards=document.querySelectorAll(".card");
 const reveal=()=>{
   const trigger=window.innerHeight*0.85;
@@ -267,6 +218,5 @@ const reveal=()=>{
 window.addEventListener("scroll",reveal);
 window.addEventListener("load",reveal);
 </script>
-
 </body>
 </html>
