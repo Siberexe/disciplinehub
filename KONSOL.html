@@ -1,0 +1,116 @@
+<!DOCTYPE html><html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>reis_GPT Giriş Sistemi</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: monospace; }
+    body { background: black; color: #00ff00; }
+    #hackerText, #loginContainer, #adminPanel, #maintenanceScreen { display: none; padding: 20px; }
+    #loginContainer input { display: block; margin: 10px 0; padding: 5px; }
+    #adminPanel, #maintenanceScreen { background: white; color: black; padding: 20px; border-radius: 8px; text-align: center; }
+    #adminPanel table { width: 100%; border-collapse: collapse; }
+    #adminPanel th, #adminPanel td { border: 1px solid black; padding: 5px; }
+  </style>
+</head>
+<body>
+  <div id="hackerText"></div>  <div id="loginContainer">
+    <h2>Giriş Yap</h2>
+    <input type="text" id="username" placeholder="Kullanıcı Adı">
+    <input type="password" id="password" placeholder="Şifre">
+    <button onclick="login()">Giriş Yap</button>
+    <button onclick="showRegister()">Kayıt Ol</button>
+  </div>  <div id="registerContainer" style="display:none; padding: 20px;">
+    <h2>Kayıt Ol</h2>
+    <input type="text" id="regUsername" placeholder="Yeni Kullanıcı Adı">
+    <input type="password" id="regPassword" placeholder="Yeni Şifre">
+    <button onclick="register()">Kayıt</button>
+    <button onclick="showLogin()">Girişe Dön</button>
+  </div>  <div id="adminPanel">
+    <h2>Admin Paneli</h2>
+    <table><thead><tr><th>Kullanıcı</th><th>Şifre</th><th>Son Giriş</th></tr></thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>  <div id="maintenanceScreen">
+    <h2 style="color:red">Endişelenmenize gerek yok, Bakımdayız!</h2>
+    <p>Web sitemizde bir düzenleme yapıyoruz. Bu nedenle sitemiz bakım modundadır.</p>
+    <p>Daha sonra tekrar ziyaret edebilir veya bu sayfayı açık bırakarak erişim sağlayabilirsiniz.</p>
+    <p id="refreshCounter">Sayfa yenileniyor...</p>
+  </div>  <script>
+    const hackerText = document.getElementById('hackerText');
+    const sampleWords = ["Access Granted", "Initializing Matrix", "Bypassing Firewall", "System Breach", "Loading Protocols", "Decrypting..."];
+    let charStream = "";
+
+    function generateRandomHackerText() {
+      const word = sampleWords[Math.floor(Math.random() * sampleWords.length)];
+      charStream += word + "\n";
+      hackerText.innerText = charStream;
+    }
+
+    function startHackerEffect() {
+      hackerText.style.display = 'block';
+      const interval = setInterval(generateRandomHackerText, 200);
+      setTimeout(() => {
+        clearInterval(interval);
+        hackerText.style.display = 'none';
+        document.getElementById('loginContainer').style.display = 'block';
+      }, 10000);
+    }
+
+    function showRegister() {
+      document.getElementById('loginContainer').style.display = 'none';
+      document.getElementById('registerContainer').style.display = 'block';
+    }
+
+    function showLogin() {
+      document.getElementById('registerContainer').style.display = 'none';
+      document.getElementById('loginContainer').style.display = 'block';
+    }
+
+    function register() {
+      const user = document.getElementById('regUsername').value;
+      const pass = document.getElementById('regPassword').value;
+      const data = JSON.parse(localStorage.getItem('users') || '{}');
+      data[user] = { password: pass, lastLogin: null };
+      localStorage.setItem('users', JSON.stringify(data));
+      alert("Kayıt başarılı");
+      showLogin();
+    }
+
+    function login() {
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      const data = JSON.parse(localStorage.getItem('users') || '{}');
+      if (user === "REIS" && pass === "REIS123") {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        const tbody = document.getElementById('userTable');
+        tbody.innerHTML = "";
+        Object.entries(data).forEach(([u, info]) => {
+          const row = `<tr><td>${u}</td><td>${info.password}</td><td>${info.lastLogin || "Yok"}</td></tr>`;
+          tbody.innerHTML += row;
+        });
+      } else if (data[user] && data[user].password === pass) {
+        data[user].lastLogin = new Date().toLocaleString();
+        localStorage.setItem('users', JSON.stringify(data));
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('maintenanceScreen').style.display = 'block';
+        startRefresh();
+      } else {
+        alert("Hatalı giriş");
+      }
+    }
+
+    let refreshCount = 10;
+    function startRefresh() {
+      const el = document.getElementById('refreshCounter');
+      setInterval(() => {
+        refreshCount--;
+        el.innerText = `${refreshCount} saniye içinde sayfa yenilenecek...`;
+        if (refreshCount <= 0) location.reload();
+      }, 1000);
+    }
+
+    window.onload = startHackerEffect;
+  </script></body>
+</html>
