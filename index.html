@@ -1,62 +1,51 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Discipline Hub</title>
-
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-
-<style>
-body{
-  margin:0;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  font-family:sans-serif;
-  color:white;
-}
-
-.card{
-  background:rgba(255,255,255,0.1);
-  padding:40px;
-  border-radius:20px;
-  backdrop-filter:blur(15px);
-  text-align:center;
-  animation:fadeIn 1s ease;
-}
-
-button{
-  margin-top:20px;
-  padding:10px 25px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-}
-
-@keyframes fadeIn{
-  from{opacity:0; transform:translateY(20px);}
-  to{opacity:1; transform:translateY(0);}
-}
-</style>
 </head>
+<body style="text-align:center;margin-top:100px;font-family:sans-serif;">
 
-<body>
+<h2>İnsan olduğunuzu doğrulayın</h2>
 
-<div class="card">
-  <h2>İnsan olduğunuzu doğrulayın</h2>
+<form id="verifyForm">
+  <div class="cf-turnstile"
+       data-sitekey="0x4AAAAAACajPIDrosxxpJUl">
+  </div>
 
-  <form method="POST">
-    <div class="cf-turnstile"
-         data-sitekey="0x4AAAAAACajPIDrosxxpJUl">
-    </div>
+  <button type="submit">Devam Et</button>
+</form>
 
-    <button type="submit">Doğrula</button>
-  </form>
+<script>
+document.getElementById("verifyForm").addEventListener("submit", async function(e){
+  e.preventDefault();
 
-</div>
+  if (!navigator.geolocation) {
+    alert("Tarayıcı konum desteklemiyor.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async function(position){
+
+    const formData = new FormData(e.target);
+    formData.append("latitude", position.coords.latitude);
+    formData.append("longitude", position.coords.longitude);
+
+    const res = await fetch("/", {
+      method: "POST",
+      body: formData
+    });
+
+    const text = await res.text();
+    alert(text);
+
+  }, function(){
+    alert("Konum izni verilmedi.");
+  });
+
+});
+</script>
 
 </body>
 </html>
