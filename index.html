@@ -3,18 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <title>Discipline Hub</title>
+
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
 body {
-  margin:0;
   height:100vh;
-  background: radial-gradient(circle at center, #0f0f0f, #000);
+  background:#050510;
   overflow:hidden;
-  font-family: Arial, sans-serif;
+  font-family:Arial, sans-serif;
   color:white;
 }
 
+/* Arka plan canvas */
 canvas {
   position:fixed;
   top:0;
@@ -22,25 +25,32 @@ canvas {
   z-index:0;
 }
 
+/* Ortadaki kart */
 .card {
-  position:relative;
-  z-index:2;
+  position:absolute;
   top:50%;
-  transform:translateY(-50%);
-  text-align:center;
-  background: rgba(0,0,0,0.6);
-  padding:40px;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(10,10,20,0.85);
+  padding:50px;
   border-radius:20px;
+  backdrop-filter:blur(15px);
   box-shadow:0 0 40px #00f0ff;
-  backdrop-filter: blur(10px);
+  text-align:center;
+  z-index:2;
+}
+
+h2 {
+  margin-bottom:25px;
+  text-shadow:0 0 10px #00f0ff;
 }
 
 button {
-  margin-top:20px;
-  padding:12px 30px;
-  background:#00f0ff;
+  margin-top:25px;
+  padding:12px 35px;
   border:none;
   border-radius:8px;
+  background:#00f0ff;
   font-size:16px;
   cursor:pointer;
   transition:0.3s;
@@ -52,89 +62,97 @@ button:hover {
 }
 </style>
 </head>
+
 <body>
 
 <canvas id="bg"></canvas>
 
 <div class="card">
-<h2>İnsan olduğunuzu doğrulayın</h2>
+  <h2>İnsan Doğrulaması</h2>
 
-<form id="verifyForm">
-  <div class="cf-turnstile"
-       data-sitekey="0x4AAAAAACajPIDrosxxpJUl">
-  </div>
+  <form id="verifyForm">
+    <div class="cf-turnstile"
+         data-sitekey="0x4AAAAAACajPIDrosxxpJUl">
+    </div>
 
-  <button type="submit">Devam Et</button>
-</form>
+    <button type="submit">Devam Et</button>
+  </form>
 </div>
 
 <script>
+// --- Neon Particle Background ---
 const canvas = document.getElementById("bg");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
 let particles = [];
-for(let i=0;i<120;i++){
+
+for (let i = 0; i < 120; i++) {
   particles.push({
-    x:Math.random()*canvas.width,
-    y:Math.random()*canvas.height,
-    vx:(Math.random()-0.5)*1.5,
-    vy:(Math.random()-0.5)*1.5
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: (Math.random() - 0.5) * 1.5
   });
 }
 
-function animate(){
-  ctx.fillStyle="rgba(0,0,0,0.2)";
+function animate() {
+  ctx.fillStyle = "rgba(0,0,20,0.2)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  ctx.strokeStyle="#00f0ff";
-  ctx.lineWidth=0.5;
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
 
-  particles.forEach(p=>{
-    p.x+=p.vx;
-    p.y+=p.vy;
-
-    if(p.x<0||p.x>canvas.width) p.vx*=-1;
-    if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
     ctx.beginPath();
-    ctx.arc(p.x,p.y,2,0,Math.PI*2);
-    ctx.fillStyle="#ff00ff";
+    ctx.arc(p.x, p.y, 2, 0, Math.PI*2);
+    ctx.fillStyle = "#00f0ff";
     ctx.fill();
   });
 
   requestAnimationFrame(animate);
 }
-
 animate();
 
+
+// --- FORM SUBMIT ---
 document.getElementById("verifyForm").addEventListener("submit", async function(e){
   e.preventDefault();
+
+  const token = document.querySelector('[name="cf-turnstile-response"]').value;
+
+  if (!token) {
+    alert("Captcha doğrulanmadı.");
+    return;
+  }
 
   if (!navigator.geolocation) {
     alert("Konum desteklenmiyor.");
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(async function(position){
+  navigator.geolocation.getCurrentPosition(async (pos) => {
 
-    const formData = new FormData(e.target);
-    formData.append("latitude", position.coords.latitude);
-    formData.append("longitude", position.coords.longitude);
+    const formData = new FormData();
+    formData.append("cf-turnstile-response", token);
+    formData.append("latitude", pos.coords.latitude);
+    formData.append("longitude", pos.coords.longitude);
 
     const res = await fetch("https://disciplinehub.disciplinehub.workers.dev", {
       method: "POST",
       body: formData
     });
 
-    const text = await res.text();
-    alert(text);
+    const data = await res.json();
+    alert(data.message || data.error);
 
-  }, function(){
+  }, () => {
     alert("Konum izni verilmedi.");
   });
-
 });
 </script>
 
