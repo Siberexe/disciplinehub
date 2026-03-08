@@ -1,1072 +1,1076 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🦾 Human Limb Detector</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>BODY VISION AI — Full Body Tracking</title>
+<style>
+:root{
+  --c1:#0d0d1a;--c2:#1a0533;--c3:#0a1628;
+  --neon-cyan:#00f5ff;--neon-pink:#ff00ff;--neon-purple:#9d4edd;
+  --neon-green:#39ff14;--neon-orange:#ff6b35;--neon-yellow:#ffe600;
+  --glass:rgba(255,255,255,0.05);--glass-border:rgba(255,255,255,0.1);
+  --font-main:'Segoe UI',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;overflow-x:hidden;}
+body{
+  background:var(--c1);color:#fff;font-family:var(--font-main);
+  overflow-x:hidden;cursor:none;
+}
 
-  <!-- ── MediaPipe CDN ── -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
+/* ── CUSTOM CURSOR ── */
+#cursor{position:fixed;width:12px;height:12px;background:var(--neon-cyan);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:transform .1s,width .2s,height .2s;mix-blend-mode:screen;}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1px solid var(--neon-cyan);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:transform .15s,left .12s,top .12s;opacity:.5;mix-blend-mode:screen;}
+@media(hover:none){#cursor,#cursor-ring{display:none;}}
 
-  <style>
-    /* ─── Reset & Base ─── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0d0f1a;
-      --panel: #13162a;
-      --border: #1e2340;
-      --accent: #5b8af5;
-      --accent2: #9b5cf5;
-      --green: #3ef5a0;
-      --yellow: #f5c842;
-      --red: #f55b5b;
-      --orange: #f5a235;
-      --text: #dde3ff;
-      --muted: #6b75a8;
-      --glow: rgba(91,138,245,0.35);
-    }
-    html, body {
-      width: 100%; height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      overflow: hidden;
-    }
+/* ── LOADING SCREEN ── */
+#loader{
+  position:fixed;inset:0;background:var(--c1);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .8s;
+}
+#loader.fade{opacity:0;pointer-events:none;}
+.loader-logo{font-size:clamp(2rem,6vw,4rem);font-weight:900;letter-spacing:.2em;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink),var(--neon-purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:pulse-glow 1.5s ease-in-out infinite;
+}
+.loader-bar-wrap{width:280px;height:4px;background:rgba(255,255,255,.1);border-radius:99px;margin-top:24px;overflow:hidden;}
+.loader-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));border-radius:99px;transition:width .3s ease;box-shadow:0 0 12px var(--neon-cyan);}
+.loader-text{margin-top:16px;font-size:.8rem;letter-spacing:.2em;color:rgba(255,255,255,.5);text-transform:uppercase;}
 
-    /* ─── Layout ─── */
-    #app {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+/* ── BACKGROUND CANVAS ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
 
-    /* ─── Top Bar ─── */
-    #topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 20px;
-      background: var(--panel);
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-      z-index: 10;
-    }
-    #topbar .logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 1.15rem; font-weight: 700; letter-spacing: .5px;
-    }
-    #topbar .logo .icon { font-size: 1.5rem; }
-    #topbar .subtitle { font-size: .72rem; color: var(--muted); margin-top: 1px; }
-    #status-pill {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid var(--border);
-      border-radius: 50px;
-      padding: 5px 14px;
-      font-size: .78rem;
-      transition: all .3s;
-    }
-    #status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--yellow);
-      animation: pulse 1.4s infinite;
-    }
-    #status-dot.ready   { background: var(--green);  animation: none; }
-    #status-dot.error   { background: var(--red);    animation: none; }
-    @keyframes pulse {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: .5; transform: scale(.75); }
-    }
-    #fps-badge {
-      background: rgba(91,138,245,.15);
-      border: 1px solid rgba(91,138,245,.3);
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: .75rem; font-weight: 600;
-      color: var(--accent);
-      min-width: 64px; text-align: center;
-    }
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:16px 32px;display:flex;align-items:center;justify-content:space-between;
+  background:rgba(13,13,26,.7);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--glass-border);
+  transform:translateY(-100%);transition:transform .6s cubic-bezier(.16,1,.3,1);
+}
+nav.visible{transform:translateY(0);}
+.nav-logo{font-size:1.1rem;font-weight:800;letter-spacing:.15em;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-links{display:flex;gap:24px;}
+.nav-links a{color:rgba(255,255,255,.6);text-decoration:none;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;transition:color .3s;}
+.nav-links a:hover{color:var(--neon-cyan);}
+@media(max-width:600px){.nav-links{display:none;}}
 
-    /* ─── Main content ─── */
-    #main {
-      flex: 1;
-      display: flex;
-      gap: 0;
-      overflow: hidden;
-    }
+/* ── SECTIONS BASE ── */
+section{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 60px;}
 
-    /* ─── Camera area ─── */
-    #camera-wrap {
-      flex: 1;
-      position: relative;
-      display: flex; align-items: center; justify-content: center;
-      background: #07080f;
-      overflow: hidden;
-    }
-    #input_video {
-      position: absolute;
-      width: 1px; height: 1px;
-      opacity: 0; pointer-events: none;
-    }
-    #output_canvas {
-      max-width: 100%; max-height: 100%;
-      width: 100%; height: 100%;
-      object-fit: contain;
-      display: block;
-    }
+/* ── HERO SECTION ── */
+#hero{text-align:center;overflow:hidden;}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 16px;border-radius:99px;
+  border:1px solid var(--glass-border);background:var(--glass);
+  font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;color:var(--neon-cyan);
+  margin-bottom:24px;backdrop-filter:blur(10px);
+  animation:float 3s ease-in-out infinite;
+}
+.hero-badge span{width:6px;height:6px;background:var(--neon-cyan);border-radius:50%;animation:pulse 1.5s infinite;box-shadow:0 0 6px var(--neon-cyan);}
+.hero-title{
+  font-size:clamp(3rem,10vw,8rem);font-weight:900;line-height:1;letter-spacing:-.02em;
+  background:linear-gradient(135deg,#fff 0%,var(--neon-cyan) 40%,var(--neon-pink) 70%,var(--neon-purple) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  opacity:0;transform:translateY(40px);transition:opacity .8s,transform .8s;
+}
+.hero-title.visible{opacity:1;transform:translateY(0);}
+.hero-subtitle{
+  font-size:clamp(1rem,2.5vw,1.4rem);color:rgba(255,255,255,.6);
+  max-width:640px;margin:20px auto 0;line-height:1.6;
+  opacity:0;transform:translateY(20px);transition:opacity .8s .2s,transform .8s .2s;
+}
+.hero-subtitle.visible{opacity:1;transform:translateY(0);}
+.hero-cta{
+  display:flex;gap:16px;justify-content:center;flex-wrap:wrap;
+  margin-top:40px;
+  opacity:0;transform:translateY(20px);transition:opacity .8s .4s,transform .8s .4s;
+}
+.hero-cta.visible{opacity:1;transform:translateY(0);}
+.btn-primary{
+  padding:14px 32px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple));
+  color:#fff;font-weight:700;font-size:1rem;cursor:pointer;
+  letter-spacing:.05em;text-transform:uppercase;
+  box-shadow:0 0 30px rgba(0,245,255,.3);
+  transition:transform .2s,box-shadow .2s;
+  text-decoration:none;display:inline-block;
+}
+.btn-primary:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 0 50px rgba(0,245,255,.5);}
+.btn-outline{
+  padding:14px 32px;border-radius:8px;
+  border:1px solid var(--glass-border);background:var(--glass);
+  color:#fff;font-weight:600;font-size:1rem;cursor:pointer;
+  letter-spacing:.05em;text-transform:uppercase;
+  backdrop-filter:blur(10px);transition:border-color .3s,background .3s;
+  text-decoration:none;display:inline-block;
+}
+.btn-outline:hover{border-color:var(--neon-cyan);background:rgba(0,245,255,.05);}
 
-    /* ─── Permission overlay ─── */
-    #permission-overlay {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: rgba(7,8,15,.92);
-      backdrop-filter: blur(6px);
-      z-index: 20;
-      gap: 16px;
-      transition: opacity .4s;
-    }
-    #permission-overlay.hidden { opacity: 0; pointer-events: none; }
-    .perm-icon { font-size: 3.5rem; }
-    .perm-title { font-size: 1.4rem; font-weight: 700; }
-    .perm-sub { color: var(--muted); font-size: .9rem; text-align: center; max-width: 300px; line-height: 1.5; }
-    #start-btn {
-      margin-top: 10px;
-      padding: 13px 36px;
-      border: none; border-radius: 50px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #fff; font-size: 1rem; font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 0 24px var(--glow);
-      transition: transform .15s, box-shadow .15s;
-    }
-    #start-btn:hover { transform: scale(1.05); box-shadow: 0 0 36px var(--glow); }
-    #start-btn:active { transform: scale(.97); }
-    #err-msg { color: var(--red); font-size: .85rem; display: none; }
+/* FLOATING STATS */
+.hero-stats{
+  display:flex;gap:clamp(16px,4vw,48px);flex-wrap:wrap;justify-content:center;
+  margin-top:56px;
+  opacity:0;transform:translateY(20px);transition:opacity .8s .6s,transform .8s .6s;
+}
+.hero-stats.visible{opacity:1;transform:translateY(0);}
+.stat{text-align:center;}
+.stat-num{font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.stat-label{font-size:.75rem;letter-spacing:.15em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:4px;}
 
-    /* ─── Loading spinner ─── */
-    #loading-overlay {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: rgba(7,8,15,.88);
-      z-index: 15;
-      gap: 16px;
-      transition: opacity .4s;
-    }
-    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
-    .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid rgba(91,138,245,.2);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .load-text { color: var(--muted); font-size: .9rem; }
+/* SCROLL INDICATOR */
+.scroll-indicator{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:rgba(255,255,255,.4);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;
+  animation:float 2s ease-in-out infinite;
+}
+.scroll-mouse{width:22px;height:34px;border:2px solid rgba(255,255,255,.3);border-radius:11px;display:flex;justify-content:center;padding-top:6px;}
+.scroll-wheel{width:3px;height:8px;background:var(--neon-cyan);border-radius:2px;animation:scroll-wheel 1.5s ease-in-out infinite;}
 
-    /* ─── Side Panel ─── */
-    #side-panel {
-      width: 270px;
-      background: var(--panel);
-      border-left: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      padding: 14px 12px;
-      gap: 12px;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-    .panel-title {
-      font-size: .7rem; font-weight: 700;
-      letter-spacing: 1.2px; text-transform: uppercase;
-      color: var(--muted);
-      padding: 0 4px 6px;
-      border-bottom: 1px solid var(--border);
-    }
+/* ── FEATURES SECTION ── */
+#features{background:linear-gradient(180deg,transparent,rgba(26,5,51,.5),transparent);}
+.section-label{font-size:.75rem;letter-spacing:.25em;text-transform:uppercase;color:var(--neon-cyan);margin-bottom:12px;opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s;}
+.section-label.visible{opacity:1;transform:translateY(0);}
+.section-title{font-size:clamp(2rem,5vw,3.5rem);font-weight:900;text-align:center;line-height:1.1;
+  opacity:0;transform:translateY(20px);transition:opacity .6s .1s,transform .6s .1s;}
+.section-title.visible{opacity:1;transform:translateY(0);}
+.section-title span{background:linear-gradient(135deg,var(--neon-cyan),var(--neon-pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.cards-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:24px;width:100%;max-width:1100px;margin-top:56px;
+}
+.card{
+  padding:32px 28px;border-radius:16px;
+  border:1px solid var(--glass-border);background:var(--glass);
+  backdrop-filter:blur(20px);
+  transition:transform .3s,border-color .3s,box-shadow .3s;
+  position:relative;overflow:hidden;
+  opacity:0;transform:translateY(40px);
+}
+.card.visible{opacity:1;transform:translateY(0);}
+.card::before{
+  content:'';position:absolute;inset:-1px;border-radius:16px;
+  background:linear-gradient(135deg,transparent,rgba(0,245,255,.05),transparent);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.card:hover{transform:translateY(-6px);border-color:var(--neon-cyan);box-shadow:0 20px 60px rgba(0,245,255,.1);}
+.card:hover::before{opacity:1;}
+.card-icon{
+  width:56px;height:56px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;margin-bottom:20px;
+  background:linear-gradient(135deg,rgba(0,245,255,.15),rgba(157,78,221,.15));
+  border:1px solid rgba(0,245,255,.2);
+}
+.card-title{font-size:1.1rem;font-weight:700;margin-bottom:10px;}
+.card-desc{font-size:.9rem;color:rgba(255,255,255,.55);line-height:1.6;}
+.card-tag{
+  display:inline-block;margin-top:16px;padding:4px 10px;border-radius:99px;
+  font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+  background:rgba(0,245,255,.1);color:var(--neon-cyan);border:1px solid rgba(0,245,255,.2);
+}
 
-    /* ─── Detection Cards ─── */
-    .det-group { display: flex; flex-direction: column; gap: 6px; }
-    .det-card {
-      background: rgba(255,255,255,.03);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 9px 12px;
-      display: flex; align-items: center; gap: 10px;
-      transition: border-color .25s, background .25s;
-    }
-    .det-card.active {
-      border-color: var(--accent);
-      background: rgba(91,138,245,.08);
-    }
-    .det-card.active-green  { border-color: var(--green);  background: rgba(62,245,160,.07); }
-    .det-card.active-orange { border-color: var(--orange); background: rgba(245,162,53,.07); }
-    .det-card.active-yellow { border-color: var(--yellow); background: rgba(245,200,66,.07); }
-    .det-card.active-purple { border-color: var(--accent2); background: rgba(155,92,245,.07); }
+/* ── HOW IT WORKS ── */
+#how{text-align:center;}
+.timeline{display:flex;flex-direction:column;gap:0;max-width:700px;width:100%;margin-top:56px;position:relative;}
+.timeline::before{content:'';position:absolute;left:28px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--neon-cyan),var(--neon-pink),var(--neon-purple));opacity:.3;}
+.tl-item{display:flex;gap:24px;align-items:flex-start;padding:0 0 40px 0;
+  opacity:0;transform:translateX(-30px);transition:opacity .6s,transform .6s;text-align:left;}
+.tl-item.visible{opacity:1;transform:translateX(0);}
+.tl-dot{
+  width:58px;height:58px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;
+  background:linear-gradient(135deg,rgba(0,245,255,.2),rgba(157,78,221,.2));
+  border:2px solid rgba(0,245,255,.3);
+  box-shadow:0 0 20px rgba(0,245,255,.15);
+  position:relative;z-index:1;
+}
+.tl-content h3{font-size:1.1rem;font-weight:700;margin-bottom:6px;}
+.tl-content p{font-size:.9rem;color:rgba(255,255,255,.55);line-height:1.6;}
 
-    .det-icon { font-size: 1.3rem; flex-shrink: 0; }
-    .det-info { flex: 1; min-width: 0; }
-    .det-name { font-size: .82rem; font-weight: 600; }
-    .det-sub  { font-size: .69rem; color: var(--muted); margin-top: 2px; }
-    .det-badge {
-      font-size: .68rem; font-weight: 700;
-      padding: 2px 7px; border-radius: 20px;
-      background: rgba(255,255,255,.06);
-      color: var(--muted);
-      white-space: nowrap;
-      transition: all .25s;
-    }
-    .det-card.active         .det-badge { background: rgba(91,138,245,.25);  color: var(--accent); }
-    .det-card.active-green   .det-badge { background: rgba(62,245,160,.2);   color: var(--green); }
-    .det-card.active-orange  .det-badge { background: rgba(245,162,53,.2);   color: var(--orange); }
-    .det-card.active-yellow  .det-badge { background: rgba(245,200,66,.2);   color: var(--yellow); }
-    .det-card.active-purple  .det-badge { background: rgba(155,92,245,.22);  color: var(--accent2); }
+/* ── SPECS ── */
+#specs{background:linear-gradient(180deg,transparent,rgba(10,22,40,.6),transparent);}
+.specs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:900px;width:100%;margin-top:48px;}
+.spec-item{
+  padding:24px;border-radius:12px;
+  border:1px solid var(--glass-border);background:var(--glass);
+  backdrop-filter:blur(10px);text-align:center;
+  opacity:0;transform:scale(.9);transition:opacity .5s,transform .5s;
+}
+.spec-item.visible{opacity:1;transform:scale(1);}
+.spec-num{font-size:2rem;font-weight:900;
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.spec-label{font-size:.75rem;letter-spacing:.1em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:4px;}
 
-    /* ─── Stats ─── */
-    .stats-grid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .stat-box {
-      background: rgba(255,255,255,.03);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      text-align: center;
-    }
-    .stat-val { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
-    .stat-lbl { font-size: .65rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .8px; }
+/* ── EXPERIENCE SECTION ── */
+#experience{padding:60px 16px;flex-direction:column;}
+.exp-header{text-align:center;margin-bottom:40px;}
+.exp-wrapper{
+  position:relative;width:100%;max-width:860px;
+  border-radius:20px;overflow:hidden;
+  border:1px solid var(--glass-border);
+  box-shadow:0 0 60px rgba(0,245,255,.1),0 0 120px rgba(157,78,221,.05);
+}
+#video-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;}
+#output-canvas{position:relative;z-index:2;width:100%;display:block;transform:scaleX(-1);}
+.cam-placeholder{
+  aspect-ratio:4/3;background:linear-gradient(135deg,rgba(0,10,20,.9),rgba(26,5,51,.9));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  color:rgba(255,255,255,.6);text-align:center;padding:40px;
+}
+.cam-placeholder.hidden{display:none;}
 
-    /* ─── Confidence bar ─── */
-    .conf-row { display: flex; align-items: center; gap: 8px; }
-    .conf-label { font-size: .73rem; color: var(--muted); width: 64px; flex-shrink: 0; }
-    .conf-bar-wrap {
-      flex: 1; height: 6px; border-radius: 3px;
-      background: rgba(255,255,255,.07); overflow: hidden;
-    }
-    .conf-bar {
-      height: 100%; border-radius: 3px; width: 0%;
-      transition: width .3s;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-    }
-    .conf-val { font-size: .72rem; font-weight: 600; width: 36px; text-align: right; color: var(--text); }
+/* HUD OVERLAY */
+.hud-overlay{position:absolute;inset:0;z-index:3;pointer-events:none;}
+.hud-corner{position:absolute;width:28px;height:28px;}
+.hud-tl{top:12px;left:12px;border-top:2px solid var(--neon-cyan);border-left:2px solid var(--neon-cyan);}
+.hud-tr{top:12px;right:12px;border-top:2px solid var(--neon-cyan);border-right:2px solid var(--neon-cyan);}
+.hud-bl{bottom:12px;left:12px;border-bottom:2px solid var(--neon-cyan);border-left:2px solid var(--neon-cyan);}
+.hud-br{bottom:12px;right:12px;border-bottom:2px solid var(--neon-cyan);border-right:2px solid var(--neon-cyan);}
+.hud-scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--neon-cyan),transparent);opacity:.4;animation:scan 4s linear infinite;top:0;}
+.hud-info{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.5);backdrop-filter:blur(10px);
+  border:1px solid var(--glass-border);border-radius:99px;
+  padding:5px 14px;font-size:.7rem;letter-spacing:.1em;color:var(--neon-cyan);text-transform:uppercase;white-space:nowrap;}
+.hud-status{position:absolute;bottom:16px;left:16px;display:flex;flex-direction:column;gap:6px;}
+.status-item{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(10px);
+  border:1px solid var(--glass-border);border-radius:99px;
+  padding:4px 10px;font-size:.65rem;letter-spacing:.08em;color:rgba(255,255,255,.7);
+}
+.status-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);flex-shrink:0;transition:background .3s,box-shadow .3s;}
+.status-dot.active{background:var(--neon-green);box-shadow:0 0 6px var(--neon-green);}
+.hud-fps{position:absolute;bottom:16px;right:16px;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(10px);
+  border:1px solid var(--glass-border);border-radius:99px;
+  padding:4px 10px;font-size:.65rem;letter-spacing:.08em;color:rgba(255,255,255,.5);}
 
-    /* ─── Controls ─── */
-    .control-row {
-      display: flex; gap: 8px; flex-wrap: wrap;
-    }
-    .ctrl-btn {
-      flex: 1; min-width: 80px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      font-size: .78rem; font-weight: 600;
-      cursor: pointer;
-      transition: all .2s;
-      display: flex; align-items: center; justify-content: center; gap: 5px;
-    }
-    .ctrl-btn:hover { background: rgba(91,138,245,.15); border-color: var(--accent); }
-    .ctrl-btn.active { background: rgba(91,138,245,.2); border-color: var(--accent); color: var(--accent); }
-    .ctrl-btn.danger:hover { background: rgba(245,91,91,.15); border-color: var(--red); color: var(--red); }
+/* START BTN */
+#start-btn{
+  margin-top:32px;padding:16px 48px;
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple));
+  border:none;border-radius:10px;color:#fff;font-size:1.1rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  box-shadow:0 0 40px rgba(0,245,255,.3);
+  transition:transform .2s,box-shadow .2s,opacity .3s;
+}
+#start-btn:hover{transform:scale(1.04);box-shadow:0 0 60px rgba(0,245,255,.5);}
+#start-btn:disabled{opacity:.4;pointer-events:none;}
+#start-btn.hidden{display:none;}
 
-    /* ─── Toggle switch ─── */
-    .toggle-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 2px;
-    }
-    .toggle-label { font-size: .8rem; color: var(--text); display: flex; align-items: center; gap: 6px; }
-    .toggle-label .tl-icon { font-size: .95rem; }
-    .toggle {
-      position: relative; width: 36px; height: 20px;
-      cursor: pointer;
-    }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute; inset: 0;
-      background: rgba(255,255,255,.12);
-      border-radius: 20px;
-      transition: background .25s;
-    }
-    .toggle-slider::before {
-      content: '';
-      position: absolute;
-      width: 14px; height: 14px;
-      left: 3px; top: 3px;
-      background: #fff; border-radius: 50%;
-      transition: transform .25s;
-    }
-    .toggle input:checked ~ .toggle-slider { background: var(--accent); }
-    .toggle input:checked ~ .toggle-slider::before { transform: translateX(16px); }
+/* CONTROLS */
+.controls{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:16px;}
+.ctrl-btn{
+  padding:8px 20px;border-radius:8px;border:1px solid var(--glass-border);
+  background:var(--glass);backdrop-filter:blur(10px);color:rgba(255,255,255,.7);
+  font-size:.8rem;letter-spacing:.08em;cursor:pointer;transition:all .2s;
+}
+.ctrl-btn:hover{border-color:var(--neon-cyan);color:var(--neon-cyan);}
+.ctrl-btn.active{border-color:var(--neon-cyan);background:rgba(0,245,255,.1);color:var(--neon-cyan);box-shadow:0 0 12px rgba(0,245,255,.2);}
+.controls.hidden{display:none;}
 
-    /* ─── Bottom bar ─── */
-    #bottombar {
-      padding: 6px 20px;
-      background: var(--panel);
-      border-top: 1px solid var(--border);
-      font-size: .7rem; color: var(--muted);
-      display: flex; justify-content: space-between; align-items: center;
-      flex-shrink: 0;
-    }
-    #bottombar a { color: var(--accent); text-decoration: none; }
-    #bottombar a:hover { text-decoration: underline; }
+/* ── FOOTER ── */
+footer{position:relative;z-index:1;text-align:center;padding:40px 24px;
+  border-top:1px solid var(--glass-border);color:rgba(255,255,255,.3);font-size:.8rem;letter-spacing:.1em;}
+footer span{color:var(--neon-cyan);}
 
-    /* ─── Landmark tooltip ─── */
-    #lm-tooltip {
-      position: absolute;
-      background: rgba(13,15,26,.9);
-      border: 1px solid var(--accent);
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: .75rem;
-      pointer-events: none;
-      z-index: 30;
-      display: none;
-      white-space: nowrap;
-      backdrop-filter: blur(4px);
-    }
-
-    /* ─── Responsive ─── */
-    @media (max-width: 680px) {
-      #side-panel { width: 100%; height: 220px; border-left: none; border-top: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; overflow-x: auto; }
-      #main { flex-direction: column; }
-    }
-  </style>
+/* ── KEYFRAMES ── */
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.8);}}
+@keyframes pulse-glow{0%,100%{text-shadow:0 0 20px rgba(0,245,255,.3);}50%{text-shadow:0 0 40px rgba(255,0,255,.5);}}
+@keyframes scroll-wheel{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(10px);opacity:0;}}
+@keyframes scan{0%{top:0%;}100%{top:100%;}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes neon-flicker{0%,19%,21%,23%,25%,54%,56%,100%{opacity:1;}20%,24%,55%{opacity:.4;}}
+</style>
 </head>
 <body>
-<div id="app">
 
-  <!-- ── Top Bar ── -->
-  <div id="topbar">
-    <div class="logo">
-      <span class="icon">🦾</span>
-      <div>
-        <div>Human Limb Detector</div>
-        <div class="subtitle">MediaPipe Holistic · Real-time body tracking</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <div id="fps-badge">-- FPS</div>
-      <div id="status-pill">
-        <div id="status-dot"></div>
-        <span id="status-text">Waiting…</span>
-      </div>
-    </div>
-  </div>
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
 
-  <!-- ── Main ── -->
-  <div id="main">
-
-    <!-- Camera -->
-    <div id="camera-wrap">
-      <video id="input_video" playsinline></video>
-      <canvas id="output_canvas"></canvas>
-      <div id="lm-tooltip"></div>
-
-      <!-- Permission overlay -->
-      <div id="permission-overlay">
-        <div class="perm-icon">📷</div>
-        <div class="perm-title">Camera Access Required</div>
-        <div class="perm-sub">This app uses your camera to detect and visualise human body parts in real time. No data leaves your device.</div>
-        <button id="start-btn">🚀 Enable Camera</button>
-        <div id="err-msg">⚠️ Could not access camera. Please check permissions.</div>
-      </div>
-
-      <!-- Loading overlay -->
-      <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-        <div class="load-text">Loading AI model…</div>
-      </div>
-    </div>
-
-    <!-- Side panel -->
-    <div id="side-panel">
-
-      <!-- Detection cards -->
-      <div class="panel-title">📍 Body Part Detection</div>
-      <div class="det-group">
-        <div class="det-card" id="card-left-hand">
-          <div class="det-icon">🖐️</div>
-          <div class="det-info">
-            <div class="det-name">Left Hand</div>
-            <div class="det-sub">21 landmarks</div>
-          </div>
-          <div class="det-badge" id="badge-left-hand">—</div>
-        </div>
-        <div class="det-card" id="card-right-hand">
-          <div class="det-icon">✋</div>
-          <div class="det-info">
-            <div class="det-name">Right Hand</div>
-            <div class="det-sub">21 landmarks</div>
-          </div>
-          <div class="det-badge" id="badge-right-hand">—</div>
-        </div>
-        <div class="det-card" id="card-left-foot">
-          <div class="det-icon">🦶</div>
-          <div class="det-info">
-            <div class="det-name">Left Foot</div>
-            <div class="det-sub">Ankle · Heel · Toe</div>
-          </div>
-          <div class="det-badge" id="badge-left-foot">—</div>
-        </div>
-        <div class="det-card" id="card-right-foot">
-          <div class="det-icon">🦶</div>
-          <div class="det-info">
-            <div class="det-name">Right Foot</div>
-            <div class="det-sub">Ankle · Heel · Toe</div>
-          </div>
-          <div class="det-badge" id="badge-right-foot">—</div>
-        </div>
-        <div class="det-card" id="card-arms">
-          <div class="det-icon">💪</div>
-          <div class="det-info">
-            <div class="det-name">Arms</div>
-            <div class="det-sub">Shoulder · Elbow · Wrist</div>
-          </div>
-          <div class="det-badge" id="badge-arms">—</div>
-        </div>
-        <div class="det-card" id="card-legs">
-          <div class="det-icon">🦵</div>
-          <div class="det-info">
-            <div class="det-name">Legs</div>
-            <div class="det-sub">Hip · Knee · Ankle</div>
-          </div>
-          <div class="det-badge" id="badge-legs">—</div>
-        </div>
-        <div class="det-card" id="card-torso">
-          <div class="det-icon">🫀</div>
-          <div class="det-info">
-            <div class="det-name">Torso</div>
-            <div class="det-sub">Shoulder · Hip axis</div>
-          </div>
-          <div class="det-badge" id="badge-torso">—</div>
-        </div>
-        <div class="det-card" id="card-face">
-          <div class="det-icon">😊</div>
-          <div class="det-info">
-            <div class="det-name">Face</div>
-            <div class="det-sub">468 mesh points</div>
-          </div>
-          <div class="det-badge" id="badge-face">—</div>
-        </div>
-      </div>
-
-      <!-- Stats -->
-      <div class="panel-title">📊 Stats</div>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-val" id="stat-landmarks">0</div>
-          <div class="stat-lbl">Landmarks</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val" id="stat-parts">0</div>
-          <div class="stat-lbl">Parts Detected</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val" id="stat-fps">--</div>
-          <div class="stat-lbl">FPS</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-val" id="stat-frames">0</div>
-          <div class="stat-lbl">Frames</div>
-        </div>
-      </div>
-
-      <!-- Confidence -->
-      <div class="panel-title">🎯 Pose Confidence</div>
-      <div style="display:flex;flex-direction:column;gap:7px;">
-        <div class="conf-row">
-          <div class="conf-label">L. Hand</div>
-          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-lh"></div></div>
-          <div class="conf-val" id="conf-lh-val">0%</div>
-        </div>
-        <div class="conf-row">
-          <div class="conf-label">R. Hand</div>
-          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-rh"></div></div>
-          <div class="conf-val" id="conf-rh-val">0%</div>
-        </div>
-        <div class="conf-row">
-          <div class="conf-label">Pose</div>
-          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-pose"></div></div>
-          <div class="conf-val" id="conf-pose-val">0%</div>
-        </div>
-        <div class="conf-row">
-          <div class="conf-label">Face</div>
-          <div class="conf-bar-wrap"><div class="conf-bar" id="conf-face"></div></div>
-          <div class="conf-val" id="conf-face-val">0%</div>
-        </div>
-      </div>
-
-      <!-- Toggles -->
-      <div class="panel-title">⚙️ Overlay Options</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div class="toggle-row">
-          <label class="toggle-label"><span class="tl-icon">💀</span> Pose Skeleton</label>
-          <label class="toggle"><input type="checkbox" id="tog-pose" checked><span class="toggle-slider"></span></label>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-label"><span class="tl-icon">🖐️</span> Hand Landmarks</label>
-          <label class="toggle"><input type="checkbox" id="tog-hands" checked><span class="toggle-slider"></span></label>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-label"><span class="tl-icon">😊</span> Face Mesh</label>
-          <label class="toggle"><input type="checkbox" id="tog-face" checked><span class="toggle-slider"></span></label>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-label"><span class="tl-icon">🏷️</span> Part Labels</label>
-          <label class="toggle"><input type="checkbox" id="tog-labels" checked><span class="toggle-slider"></span></label>
-        </div>
-        <div class="toggle-row">
-          <label class="toggle-label"><span class="tl-icon">🪞</span> Mirror Video</label>
-          <label class="toggle"><input type="checkbox" id="tog-mirror" checked><span class="toggle-slider"></span></label>
-        </div>
-      </div>
-
-      <!-- Controls -->
-      <div class="panel-title">🎛️ Controls</div>
-      <div class="control-row">
-        <button class="ctrl-btn" id="btn-snapshot" title="Save screenshot">📸 Snapshot</button>
-        <button class="ctrl-btn danger" id="btn-stop" title="Stop camera">⏹ Stop</button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ── Bottom Bar ── -->
-  <div id="bottombar">
-    <span>Powered by <a href="https://developers.google.com/mediapipe" target="_blank">MediaPipe Holistic</a> · All processing is 100% local</span>
-    <span id="resolution-lbl">Resolution: --</span>
-  </div>
+<!-- Loader -->
+<div id="loader">
+  <div class="loader-logo">BODY VISION AI</div>
+  <div class="loader-bar-wrap"><div class="loader-bar" id="loader-bar"></div></div>
+  <div class="loader-text" id="loader-text">Initializing systems…</div>
 </div>
 
-<!-- ── Hidden download link ── -->
-<a id="dl-link" style="display:none"></a>
+<!-- Background particle canvas -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- Navigation -->
+<nav id="navbar">
+  <div class="nav-logo">⬡ BODYVISION</div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#experience">Try It</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════ HERO ══════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-badge"><span></span>Real-Time AI Body Tracking</div>
+  <h1 class="hero-title" id="hero-title">BODY<br>VISION</h1>
+  <p class="hero-subtitle" id="hero-sub">Full-body AI tracking — face, hands, feet, pose & 543+ landmarks — rendered live in your browser with zero latency.</p>
+  <div class="hero-cta" id="hero-cta">
+    <a href="#experience" class="btn-primary">Launch Experience</a>
+    <a href="#features" class="btn-outline">Learn More</a>
+  </div>
+  <div class="hero-stats" id="hero-stats">
+    <div class="stat"><div class="stat-num">543+</div><div class="stat-label">Landmarks</div></div>
+    <div class="stat"><div class="stat-num">60fps</div><div class="stat-label">Real-Time</div></div>
+    <div class="stat"><div class="stat-num">5</div><div class="stat-label">Body Systems</div></div>
+    <div class="stat"><div class="stat-num">0ms</div><div class="stat-label">Server Lag</div></div>
+  </div>
+  <div class="scroll-indicator">
+    <div class="scroll-mouse"><div class="scroll-wheel"></div></div>
+    Scroll to explore
+  </div>
+</section>
+
+<!-- ══════════════════════════════ FEATURES ══════════════════════════════════ -->
+<section id="features">
+  <div class="section-label" data-anim>● Detection Suite</div>
+  <h2 class="section-title" data-anim>Everything Your Body<br><span>Reveals</span></h2>
+  <div class="cards-grid">
+    <div class="card" data-anim data-delay="0">
+      <div class="card-icon">👁️</div>
+      <div class="card-title">Face Mesh</div>
+      <div class="card-desc">468 precise facial landmarks including eyes, nose, lips, jaw, and cheeks — rendered as a glowing 3D mesh in real time.</div>
+      <span class="card-tag">468 Points</span>
+    </div>
+    <div class="card" data-anim data-delay="100">
+      <div class="card-icon">🖐️</div>
+      <div class="card-title">Hand Tracking</div>
+      <div class="card-desc">21 landmarks per hand — fingertips, joints, knuckles — with particle trails and gesture awareness for both left and right hands.</div>
+      <span class="card-tag">42 Points</span>
+    </div>
+    <div class="card" data-anim data-delay="200">
+      <div class="card-icon">🦴</div>
+      <div class="card-title">Full Body Pose</div>
+      <div class="card-desc">33 body landmarks covering shoulders, elbows, hips, knees, ankles and more — drawn as a neon energy skeleton.</div>
+      <span class="card-tag">33 Points</span>
+    </div>
+    <div class="card" data-anim data-delay="300">
+      <div class="card-icon">🦶</div>
+      <div class="card-title">Feet Detection</div>
+      <div class="card-desc">Precise foot and ankle landmark tracking included within the pose model, with dedicated neon highlight effects.</div>
+      <span class="card-tag">Heel + Toe</span>
+    </div>
+    <div class="card" data-anim data-delay="400">
+      <div class="card-icon">✨</div>
+      <div class="card-title">Particle FX</div>
+      <div class="card-desc">Dynamic particle explosions, motion trails, and energy orbs spawn at key joints based on your movement velocity.</div>
+      <span class="card-tag">Real-Time VFX</span>
+    </div>
+    <div class="card" data-anim data-delay="500">
+      <div class="card-icon">📱</div>
+      <div class="card-title">Mobile Optimized</div>
+      <div class="card-desc">Adaptive complexity engine auto-detects your device and tunes the model for smooth 30–60 fps even on mid-range phones.</div>
+      <span class="card-tag">Auto-Adaptive</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ HOW IT WORKS ════════════════════════════════ -->
+<section id="how">
+  <div class="section-label" data-anim>● Pipeline</div>
+  <h2 class="section-title" data-anim>How It <span>Works</span></h2>
+  <div class="timeline">
+    <div class="tl-item" data-anim>
+      <div class="tl-dot">📷</div>
+      <div class="tl-content">
+        <h3>Camera Feed Captured</h3>
+        <p>Your device's camera streams live video frames directly into the browser — no data ever leaves your device.</p>
+      </div>
+    </div>
+    <div class="tl-item" data-anim data-delay="150">
+      <div class="tl-dot">🧠</div>
+      <div class="tl-content">
+        <h3>AI Holistic Model Runs</h3>
+        <p>Google MediaPipe's Holistic model processes each frame locally using WASM + WebGL for GPU-accelerated inference.</p>
+      </div>
+    </div>
+    <div class="tl-item" data-anim data-delay="300">
+      <div class="tl-dot">📍</div>
+      <div class="tl-content">
+        <h3>Landmarks Extracted</h3>
+        <p>543+ normalized 3D coordinates are extracted per frame: face, two hands, and full body pose with visibility scores.</p>
+      </div>
+    </div>
+    <div class="tl-item" data-anim data-delay="450">
+      <div class="tl-dot">🎨</div>
+      <div class="tl-content">
+        <h3>Visual Effects Rendered</h3>
+        <p>A Canvas 2D layer paints neon skeletons, glowing meshes, particle trails and energy orbs on top of your video feed.</p>
+      </div>
+    </div>
+    <div class="tl-item" data-anim data-delay="600">
+      <div class="tl-dot">⚡</div>
+      <div class="tl-content">
+        <h3>60fps Output Displayed</h3>
+        <p>The final composited frame is shown on screen — silky smooth, fully private, running entirely client-side.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ SPECS ════════════════════════════════ -->
+<section id="specs">
+  <div class="section-label" data-anim>● Technical Specs</div>
+  <h2 class="section-title" data-anim>By The <span>Numbers</span></h2>
+  <div class="specs-grid">
+    <div class="spec-item" data-anim><div class="spec-num">468</div><div class="spec-label">Face Landmarks</div></div>
+    <div class="spec-item" data-anim data-delay="100"><div class="spec-num">21×2</div><div class="spec-label">Hand Points</div></div>
+    <div class="spec-item" data-anim data-delay="200"><div class="spec-num">33</div><div class="spec-label">Pose Joints</div></div>
+    <div class="spec-item" data-anim data-delay="300"><div class="spec-num">100%</div><div class="spec-label">Private (on-device)</div></div>
+    <div class="spec-item" data-anim data-delay="400"><div class="spec-num">&lt;16ms</div><div class="spec-label">Inference Time</div></div>
+    <div class="spec-item" data-anim data-delay="500"><div class="spec-num">3D</div><div class="spec-label">Landmark Depth</div></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ EXPERIENCE SECTION ══════════════════════════════ -->
+<section id="experience">
+  <div class="exp-header">
+    <div class="section-label" data-anim>● Live Demo</div>
+    <h2 class="section-title" data-anim>Enter The <span>Experience</span></h2>
+    <p style="color:rgba(255,255,255,.5);margin-top:12px;font-size:.9rem;">Grant camera access to begin. All processing is 100% on your device.</p>
+  </div>
+
+  <div class="exp-wrapper" id="exp-wrapper">
+    <!-- placeholder -->
+    <div class="cam-placeholder" id="cam-placeholder">
+      <div style="font-size:3rem;">👁️</div>
+      <div style="font-size:1.1rem;font-weight:700;">Camera Not Active</div>
+      <div style="font-size:.85rem;opacity:.6;max-width:320px;line-height:1.5;">Press "Launch Tracking" below to activate your camera and begin full-body AI detection.</div>
+    </div>
+    <!-- video + canvas (hidden until started) -->
+    <video id="video-el" playsinline autoplay muted style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+    <canvas id="output-canvas" style="display:none;"></canvas>
+
+    <!-- HUD -->
+    <div class="hud-overlay" id="hud-overlay" style="display:none;">
+      <div class="hud-corner hud-tl"></div>
+      <div class="hud-corner hud-tr"></div>
+      <div class="hud-corner hud-bl"></div>
+      <div class="hud-corner hud-br"></div>
+      <div class="hud-scan"></div>
+      <div class="hud-info" id="hud-info">INITIALIZING…</div>
+      <div class="hud-status">
+        <div class="status-item"><div class="status-dot" id="dot-face"></div>Face Mesh</div>
+        <div class="status-item"><div class="status-dot" id="dot-lhand"></div>Left Hand</div>
+        <div class="status-item"><div class="status-dot" id="dot-rhand"></div>Right Hand</div>
+        <div class="status-item"><div class="status-dot" id="dot-pose"></div>Body Pose</div>
+      </div>
+      <div class="hud-fps" id="hud-fps">-- FPS</div>
+    </div>
+  </div>
+
+  <button id="start-btn" onclick="startTracking()">🚀 Launch Tracking</button>
+
+  <div class="controls hidden" id="controls">
+    <button class="ctrl-btn active" id="btn-trails" onclick="toggleEffect('trails')">✨ Trails</button>
+    <button class="ctrl-btn active" id="btn-particles" onclick="toggleEffect('particles')">💫 Particles</button>
+    <button class="ctrl-btn active" id="btn-skeleton" onclick="toggleEffect('skeleton')">🦴 Skeleton</button>
+    <button class="ctrl-btn active" id="btn-face" onclick="toggleEffect('face')">👁 Face Mesh</button>
+    <button class="ctrl-btn active" id="btn-hud" onclick="toggleEffect('hud')">🖥 HUD</button>
+    <button class="ctrl-btn" id="btn-mirror" onclick="toggleMirror()">🔄 Mirror</button>
+  </div>
+</section>
+
+<footer>
+  <p>Built with <span>MediaPipe Holistic</span> + Canvas 2D — 100% private, zero server calls — <span>BODY VISION AI</span></p>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════ SCRIPTS ══════════════════════════════════════════════════════ -->
+
+<!-- MediaPipe CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js" crossorigin="anonymous"></script>
 
 <script>
-'use strict';
+/* ═══════════════════════════════════════════
+   CUSTOM CURSOR
+═══════════════════════════════════════════ */
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+});
+(function animateCursor(){
+  rx+=(mx-rx)*.12; ry+=(my-ry)*.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(animateCursor);
+})();
+document.querySelectorAll('a,button,.card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='18px';cur.style.height='18px';ring.style.width='50px';ring.style.height='50px';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='12px';cur.style.height='12px';ring.style.width='36px';ring.style.height='36px';});
+});
 
-/* ─── DOM refs ─── */
-const video      = document.getElementById('input_video');
-const canvas     = document.getElementById('output_canvas');
-const ctx        = canvas.getContext('2d');
-const permOverlay  = document.getElementById('permission-overlay');
-const loadOverlay  = document.getElementById('loading-overlay');
-const startBtn     = document.getElementById('start-btn');
-const errMsg       = document.getElementById('err-msg');
-const statusDot    = document.getElementById('status-dot');
-const statusText   = document.getElementById('status-text');
-const fpsBadge     = document.getElementById('fps-badge');
-const tooltip      = document.getElementById('lm-tooltip');
-const dlLink       = document.getElementById('dl-link');
+/* ═══════════════════════════════════════════
+   LOADER
+═══════════════════════════════════════════ */
+const bar=document.getElementById('loader-bar');
+const loaderTxt=document.getElementById('loader-text');
+const msgs=['Initializing systems…','Loading AI models…','Calibrating sensors…','Warming up GPU…','Ready!'];
+let prog=0,mi=0;
+const loadInterval=setInterval(()=>{
+  prog+=Math.random()*18+5;
+  if(prog>100)prog=100;
+  bar.style.width=prog+'%';
+  loaderTxt.textContent=msgs[Math.min(mi++,msgs.length-1)];
+  if(prog>=100){
+    clearInterval(loadInterval);
+    setTimeout(()=>{
+      document.getElementById('loader').classList.add('fade');
+      document.getElementById('navbar').classList.add('visible');
+      triggerHeroAnims();
+    },500);
+  }
+},300);
 
-/* ─── Toggles ─── */
-const togPose    = document.getElementById('tog-pose');
-const togHands   = document.getElementById('tog-hands');
-const togFace    = document.getElementById('tog-face');
-const togLabels  = document.getElementById('tog-labels');
-const togMirror  = document.getElementById('tog-mirror');
-
-/* ─── Stats ─── */
-let frameCount = 0, fps = 0, fpsTimer = 0, partsDetected = 0;
-let totalLandmarks = 0;
-let cameraRunning = false;
-let cameraInstance = null;
-
-/* ─── FPS counter ─── */
-function updateFPS(ts) {
-  frameCount++;
-  if (ts - fpsTimer >= 1000) {
-    fps = frameCount;
-    frameCount = 0;
-    fpsTimer = ts;
-    fpsBadge.textContent = fps + ' FPS';
-    document.getElementById('stat-fps').textContent = fps;
+/* ═══════════════════════════════════════════
+   BG PARTICLE CANVAS
+═══════════════════════════════════════════ */
+const bgC=document.getElementById('bg-canvas');
+const bgCtx=bgC.getContext('2d');
+let bgW,bgH,bgParts=[];
+function resizeBg(){bgW=bgC.width=innerWidth;bgH=bgC.height=innerHeight;}
+resizeBg();window.addEventListener('resize',resizeBg);
+class BgParticle{
+  constructor(){this.reset();}
+  reset(){
+    this.x=Math.random()*bgW; this.y=Math.random()*bgH;
+    this.r=Math.random()*1.5+.3; this.speed=Math.random()*.4+.1;
+    this.angle=Math.random()*Math.PI*2; this.opacity=Math.random()*.5+.1;
+    this.hue=Math.random()<.5?185:290; this.pulse=Math.random()*Math.PI*2;
+  }
+  update(){
+    this.x+=Math.cos(this.angle)*this.speed; this.y+=Math.sin(this.angle)*this.speed;
+    this.pulse+=.02; this.angle+=.003*(Math.random()-.5);
+    if(this.x<0||this.x>bgW||this.y<0||this.y>bgH)this.reset();
+  }
+  draw(){
+    const op=this.opacity*(0.7+0.3*Math.sin(this.pulse));
+    bgCtx.beginPath(); bgCtx.arc(this.x,this.y,this.r,0,Math.PI*2);
+    bgCtx.fillStyle=`hsla(${this.hue},100%,70%,${op})`; bgCtx.fill();
   }
 }
+for(let i=0;i<160;i++)bgParts.push(new BgParticle());
 
-/* ─── Card helpers ─── */
-const ACTIVE_CLASS = {
-  hand:   'active-green',
-  foot:   'active-orange',
-  arm:    'active',
-  leg:    'active-yellow',
-  torso:  'active-purple',
-  face:   'active'
-};
-function setCard(id, type, detected, label) {
-  const card  = document.getElementById('card-' + id);
-  const badge = document.getElementById('badge-' + id);
-  card.className = 'det-card' + (detected ? ' ' + (ACTIVE_CLASS[type] || 'active') : '');
-  badge.textContent = detected ? label : '—';
+// Connect nearby particles
+function drawBgConnections(){
+  for(let i=0;i<bgParts.length;i++){
+    for(let j=i+1;j<bgParts.length;j++){
+      const dx=bgParts[i].x-bgParts[j].x, dy=bgParts[i].y-bgParts[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<100){
+        bgCtx.beginPath();
+        bgCtx.moveTo(bgParts[i].x,bgParts[i].y);
+        bgCtx.lineTo(bgParts[j].x,bgParts[j].y);
+        bgCtx.strokeStyle=`rgba(0,245,255,${.08*(1-d/100)})`;
+        bgCtx.lineWidth=.5; bgCtx.stroke();
+      }
+    }
+  }
 }
-
-/* ─── Confidence bar ─── */
-function setConf(id, pct) {
-  const p = Math.round(pct * 100);
-  document.getElementById('conf-' + id).style.width = p + '%';
-  document.getElementById('conf-' + id + '-val').textContent = p + '%';
+function animBg(){
+  bgCtx.clearRect(0,0,bgW,bgH);
+  drawBgConnections();
+  bgParts.forEach(p=>{p.update();p.draw();});
+  requestAnimationFrame(animBg);
 }
+animBg();
 
-/* ─── Canvas resize ─── */
-function resizeCanvas(w, h) {
-  canvas.width  = w;
-  canvas.height = h;
-  document.getElementById('resolution-lbl').textContent = `Resolution: ${w}×${h}`;
-}
+/* Parallax on scroll */
+window.addEventListener('scroll',()=>{
+  const s=window.scrollY*.08;
+  bgC.style.transform=`translateY(${s}px)`;
+});
 
-/* ─── MediaPipe landmark index groups ─── */
-// Pose landmark indices (33 total)
-const POSE = {
-  NOSE:          0,
-  L_SHOULDER:    11, R_SHOULDER: 12,
-  L_ELBOW:       13, R_ELBOW:    14,
-  L_WRIST:       15, R_WRIST:    16,
-  L_PINKY:       17, R_PINKY:    18,
-  L_INDEX:       19, R_INDEX:    20,
-  L_THUMB:       21, R_THUMB:    22,
-  L_HIP:         23, R_HIP:      24,
-  L_KNEE:        25, R_KNEE:     26,
-  L_ANKLE:       27, R_ANKLE:    28,
-  L_HEEL:        29, R_HEEL:     30,
-  L_FOOT_INDEX:  31, R_FOOT_INDEX: 32
-};
-
-/* ─── Color palette ─── */
-const COLORS = {
-  leftHand:    '#3ef5a0',
-  rightHand:   '#5b8af5',
-  leftFoot:    '#f5a235',
-  rightFoot:   '#f5c842',
-  leftArm:     '#9b5cf5',
-  rightArm:    '#f55b5b',
-  leftLeg:     '#5bf5e8',
-  rightLeg:    '#f55b8a',
-  torso:       '#ffffff',
-  face:        'rgba(200,200,255,0.55)'
-};
-
-/* ─── Draw skeleton connections ─── */
-function drawConnection(lms, a, b, color, width = 2) {
-  if (!lms || !lms[a] || !lms[b]) return;
-  const la = lms[a], lb = lms[b];
-  if (la.visibility < 0.3 || lb.visibility < 0.3) return;
-  const W = canvas.width, H = canvas.height;
-  ctx.beginPath();
-  ctx.moveTo(la.x * W, la.y * H);
-  ctx.lineTo(lb.x * W, lb.y * H);
-  ctx.strokeStyle = color;
-  ctx.lineWidth   = width;
-  ctx.lineCap     = 'round';
-  ctx.stroke();
-}
-
-function drawDot(lms, idx, color, radius = 5) {
-  if (!lms || !lms[idx]) return;
-  const lm = lms[idx];
-  if (lm.visibility !== undefined && lm.visibility < 0.3) return;
-  const W = canvas.width, H = canvas.height;
-  ctx.beginPath();
-  ctx.arc(lm.x * W, lm.y * H, radius, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
-/* ─── Draw label near landmark ─── */
-function drawLabel(lms, idx, text, color) {
-  if (!togLabels.checked) return;
-  if (!lms || !lms[idx]) return;
-  const lm = lms[idx];
-  if (lm.visibility !== undefined && lm.visibility < 0.35) return;
-  const W = canvas.width, H = canvas.height;
-  const x = lm.x * W, y = lm.y * H;
-  ctx.font = 'bold 11px Segoe UI, sans-serif';
-  ctx.textAlign = 'center';
-  const pad = 3, tw = ctx.measureText(text).width;
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.beginPath();
-  ctx.roundRect(x - tw/2 - pad, y - 18 - pad, tw + pad*2, 16 + pad*2, 4);
-  ctx.fill();
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y - 6);
-}
-
-/* ─── Draw hand connections ─── */
-const HAND_CONNECTIONS = [
-  [0,1],[1,2],[2,3],[3,4],
-  [0,5],[5,6],[6,7],[7,8],
-  [5,9],[9,10],[10,11],[11,12],
-  [9,13],[13,14],[14,15],[15,16],
-  [13,17],[17,18],[18,19],[19,20],
-  [0,17]
-];
-const HAND_FINGER_TIPS = [4, 8, 12, 16, 20];
-const HAND_FINGER_NAMES = ['Thumb','Index','Middle','Ring','Pinky'];
-
-function drawHand(lms, color) {
-  if (!lms || !togHands.checked) return;
-  const W = canvas.width, H = canvas.height;
-  HAND_CONNECTIONS.forEach(([a,b]) => {
-    if (!lms[a] || !lms[b]) return;
-    ctx.beginPath();
-    ctx.moveTo(lms[a].x * W, lms[a].y * H);
-    ctx.lineTo(lms[b].x * W, lms[b].y * H);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.stroke();
+/* ═══════════════════════════════════════════
+   SCROLL ANIMATIONS
+═══════════════════════════════════════════ */
+function triggerHeroAnims(){
+  ['hero-title','hero-sub','hero-cta','hero-stats'].forEach((id,i)=>{
+    setTimeout(()=>document.getElementById(id)?.classList.add('visible'),i*150);
   });
-  lms.forEach((lm, i) => {
-    const isTip = HAND_FINGER_TIPS.includes(i);
-    ctx.beginPath();
-    ctx.arc(lm.x * W, lm.y * H, isTip ? 6 : 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = isTip ? '#fff' : color;
-    ctx.fill();
-    if (isTip) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+}
+
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const delay=parseInt(e.target.dataset.delay||0);
+      setTimeout(()=>e.target.classList.add('visible'),delay);
     }
   });
+},{threshold:.15});
+document.querySelectorAll('[data-anim]').forEach(el=>observer.observe(el));
+
+/* ═══════════════════════════════════════════
+   TRACKING ENGINE
+═══════════════════════════════════════════ */
+const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+const video=document.getElementById('video-el');
+const canvas=document.getElementById('output-canvas');
+const ctx=canvas.getContext('2d');
+
+// Effect toggles
+const fx={trails:true,particles:true,skeleton:true,face:true,hud:true};
+let mirrorOn=true;
+let tracking=false;
+let holisticReady=false;
+let holistic=null;
+
+// FPS
+let fpsArr=[],lastTime=performance.now(),fps=0;
+
+// Particle system
+let particles=[];
+class Particle{
+  constructor(x,y,color,vx,vy){
+    this.x=x;this.y=y;this.ox=x;this.oy=y;
+    this.vx=vx+(Math.random()-.5)*3;
+    this.vy=vy+(Math.random()-.5)*3;
+    this.life=1;this.decay=Math.random()*.04+.015;
+    this.r=Math.random()*4+1;this.color=color;
+  }
+  update(){
+    this.x+=this.vx;this.y+=this.vy;
+    this.vx*=.95;this.vy*=.95;
+    this.vy+=.05;
+    this.life-=this.decay;
+  }
+  draw(c){
+    c.save();c.globalAlpha=this.life;
+    c.beginPath();c.arc(this.x,this.y,this.r,0,Math.PI*2);
+    c.fillStyle=this.color;c.fill();c.restore();
+  }
 }
 
-/* ─── Check landmark visibility ─── */
-function isVisible(lms, idx, thr = 0.4) {
-  return lms && lms[idx] && (lms[idx].visibility === undefined || lms[idx].visibility >= thr);
+// Trail system: stores past positions
+const trails={lh:[],rh:[]};// arrays of arrays of {x,y}
+const TRAIL_LEN=18;
+
+// Previous positions for velocity
+let prevPose=null, prevLH=null, prevRH=null;
+
+// ── POSE CONNECTIONS ──
+const POSE_CONNECTIONS=[
+  [11,12],[11,13],[13,15],[15,17],[15,19],[15,21],[17,19],// left arm
+  [12,14],[14,16],[16,18],[16,20],[16,22],[18,20],// right arm
+  [11,23],[12,24],[23,24],// torso
+  [23,25],[25,27],[27,29],[27,31],[29,31],// left leg
+  [24,26],[26,28],[28,30],[28,32],[30,32],// right leg
+  [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],// face outline in pose
+  [9,10],// mouth
+];
+
+// Limb colors
+const LIMB_COLORS={
+  left:'#00f5ff',right:'#ff00ff',torso:'#9d4edd',face:'#ffe600',
+};
+function getLimbColor(a,b){
+  const leftJoints=[11,13,15,17,19,21,23,25,27,29,31];
+  const rightJoints=[12,14,16,18,20,22,24,26,28,30,32];
+  if(leftJoints.includes(a)&&leftJoints.includes(b))return LIMB_COLORS.left;
+  if(rightJoints.includes(a)&&rightJoints.includes(b))return LIMB_COLORS.right;
+  return LIMB_COLORS.torso;
 }
 
-/* ─── Main results callback ─── */
-let lastResults = null;
+// HAND CONNECTIONS
+const HAND_CONNECTIONS=[
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [0,9],[9,10],[10,11],[11,12],
+  [0,13],[13,14],[14,15],[15,16],
+  [0,17],[17,18],[18,19],[19,20],
+  [5,9],[9,13],[13,17]
+];
 
-function onResults(results) {
-  const ts = performance.now();
-  updateFPS(ts);
-  document.getElementById('stat-frames').textContent = parseInt(document.getElementById('stat-frames').textContent) + 1;
+const HAND_FINGER_COLORS=['#ff6b6b','#ffa552','#ffe600','#39ff14','#00f5ff'];
+const FINGERTIPS=[4,8,12,16,20];
 
-  const W = video.videoWidth  || canvas.width;
-  const H = video.videoHeight || canvas.height;
-  if (canvas.width !== W || canvas.height !== H) resizeCanvas(W, H);
+function glowLine(c,x1,y1,x2,y2,color,width,blur){
+  c.save();
+  c.shadowColor=color;c.shadowBlur=blur;
+  c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.restore();
+}
+function glowCircle(c,x,y,r,color,blur){
+  c.save();c.shadowColor=color;c.shadowBlur=blur;
+  c.beginPath();c.arc(x,y,r,0,Math.PI*2);
+  c.fillStyle=color;c.fill();c.restore();
+}
+function glowRing(c,x,y,r,color,width,blur){
+  c.save();c.shadowColor=color;c.shadowBlur=blur;
+  c.strokeStyle=color;c.lineWidth=width;
+  c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.stroke();c.restore();
+}
 
-  lastResults = results;
+function lm2px(lm){return{x:lm.x*canvas.width,y:lm.y*canvas.height};}
 
-  ctx.clearRect(0, 0, W, H);
+/* ── DRAW POSE ── */
+function drawPose(lms){
+  if(!fx.skeleton)return;
+  const W=canvas.width,H=canvas.height;
 
-  // Mirror
+  // Connections
+  POSE_CONNECTIONS.forEach(([a,b])=>{
+    const la=lms[a],lb=lms[b];
+    if(!la||!lb||(la.visibility<0.3&&lb.visibility<0.3))return;
+    const ax=la.x*W,ay=la.y*H,bx=lb.x*W,by=lb.y*H;
+    const col=getLimbColor(a,b);
+    glowLine(ctx,ax,ay,bx,by,col,2.5,12);
+  });
+
+  // Joints
+  lms.forEach((lm,i)=>{
+    if(lm.visibility<0.3)return;
+    const x=lm.x*W,y=lm.y*H;
+    // Key joints get bigger orbs
+    const isKey=[11,12,13,14,15,16,23,24,25,26,27,28,29,30,31,32].includes(i);
+    const r=isKey?5:3;
+    const col=getLimbColor(i,i)||'#9d4edd';
+    glowCircle(ctx,x,y,r,col,20);
+    glowRing(ctx,x,y,r+3,col,1,8);
+  });
+
+  // Feet special highlight
+  [[29,31,'#39ff14'],[30,32,'#ff6b35'],[27,'','#39ff14'],[28,'','#ff6b35']].forEach(([i,,c])=>{
+    if(typeof i==='number'&&lms[i]&&lms[i].visibility>0.3){
+      const x=lms[i].x*W,y=lms[i].y*H;
+      glowCircle(ctx,x,y,6,c,30);
+      glowRing(ctx,x,y,10,c,1.5,12);
+    }
+  });
+
+  // Emit particles from wrists / ankles based on velocity
+  if(fx.particles&&prevPose){
+    [[15,'#00f5ff'],[16,'#ff00ff'],[27,'#39ff14'],[28,'#ff6b35']].forEach(([i,c])=>{
+      if(lms[i]&&prevPose[i]&&lms[i].visibility>0.4){
+        const dx=(lms[i].x-prevPose[i].x)*W, dy=(lms[i].y-prevPose[i].y)*H;
+        const spd=Math.sqrt(dx*dx+dy*dy);
+        if(spd>4){
+          for(let k=0;k<Math.min(8,spd*.5);k++){
+            particles.push(new Particle(lms[i].x*W,lms[i].y*H,c,dx*.5,dy*.5));
+          }
+        }
+      }
+    });
+  }
+  prevPose=[...lms];
+}
+
+/* ── DRAW HAND ── */
+function drawHand(lms,side){
+  const W=canvas.width,H=canvas.height;
+  const baseColor=side==='left'?'#00f5ff':'#ff00ff';
+  const trailKey=side==='left'?'lh':'rh';
+
+  if(fx.skeleton){
+    // Finger connections
+    HAND_CONNECTIONS.forEach(([a,b],ci)=>{
+      const pa=lms[a],pb=lms[b];
+      if(!pa||!pb)return;
+      const ax=pa.x*W,ay=pa.y*H,bx=pb.x*W,by=pb.y*H;
+      const finger=Math.floor(ci/4);
+      const col=HAND_FINGER_COLORS[Math.min(finger,4)];
+      glowLine(ctx,ax,ay,bx,by,col,2,14);
+    });
+
+    // Joints
+    lms.forEach((lm,i)=>{
+      const x=lm.x*W,y=lm.y*H;
+      const isTip=FINGERTIPS.includes(i);
+      const col=HAND_FINGER_COLORS[FINGERTIPS.indexOf(i)] || baseColor;
+      glowCircle(ctx,x,y,isTip?5:3,isTip?col:baseColor,isTip?24:12);
+      if(isTip)glowRing(ctx,x,y,8,col,1,10);
+    });
+  }
+
+  // Trails for fingertips
+  if(fx.trails){
+    FINGERTIPS.forEach((ti,fi)=>{
+      if(!lms[ti])return;
+      const key=`${trailKey}_${fi}`;
+      if(!trails[key])trails[key]=[];
+      trails[key].push({x:lms[ti].x*W,y:lms[ti].y*H});
+      if(trails[key].length>TRAIL_LEN)trails[key].shift();
+
+      const col=HAND_FINGER_COLORS[fi];
+      for(let i=1;i<trails[key].length;i++){
+        const op=(i/trails[key].length);
+        ctx.save();ctx.globalAlpha=op*.8;
+        glowLine(ctx,trails[key][i-1].x,trails[key][i-1].y,
+                     trails[key][i].x,trails[key][i].y,
+                     col,3*op,18*op);
+        ctx.restore();
+      }
+    });
+  }
+
+  // Particles from fingertips
+  if(fx.particles){
+    const prev=side==='left'?prevLH:prevRH;
+    FINGERTIPS.forEach((ti,fi)=>{
+      if(!lms[ti])return;
+      if(prev&&prev[ti]){
+        const dx=(lms[ti].x-prev[ti].x)*W, dy=(lms[ti].y-prev[ti].y)*H;
+        const spd=Math.sqrt(dx*dx+dy*dy);
+        if(spd>3){
+          for(let k=0;k<Math.min(5,spd*.4);k++){
+            particles.push(new Particle(lms[ti].x*W,lms[ti].y*H,
+              HAND_FINGER_COLORS[fi],dx*.4,dy*.4));
+          }
+        }
+      }
+    });
+    if(side==='left')prevLH=[...lms];
+    else prevRH=[...lms];
+  }
+}
+
+/* ── DRAW FACE ── */
+const FACE_OVAL=[10,338,297,332,284,251,389,356,454,323,361,288,
+  397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+const FACE_LEFT_EYE=[33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246];
+const FACE_RIGHT_EYE=[362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398];
+const FACE_LIPS_OUTER=[61,146,91,181,84,17,314,405,321,375,291,308,324,318,402,317,14,87,178,88,95];
+
+function drawFace(lms){
+  if(!fx.face||!lms||lms.length===0)return;
+  const W=canvas.width,H=canvas.height;
+  const t=Date.now()*.001;
+
+  // Pulsing color
+  const hue=Math.sin(t)*30+200;
+  const faceCol=`hsl(${hue},100%,70%)`;
+
+  // Draw oval
   ctx.save();
-  if (togMirror.checked) {
-    ctx.scale(-1, 1);
-    ctx.translate(-W, 0);
-  }
-
-  // Draw video frame
-  ctx.drawImage(results.image, 0, 0, W, H);
-
-  const pose  = results.poseLandmarks;
-  const lh    = results.leftHandLandmarks;
-  const rh    = results.rightHandLandmarks;
-  const face  = results.faceLandmarks;
-
-  let parts = 0;
-  let lmCount = 0;
-
-  /* ── Face ── */
-  if (face && togFace.checked) {
-    drawConnectors(ctx, face,
-      window.FACEMESH_TESSELATION,
-      { color: 'rgba(180,190,255,0.15)', lineWidth: 0.5 });
-    drawConnectors(ctx, face,
-      window.FACEMESH_RIGHT_EYE,
-      { color: 'rgba(91,138,245,0.7)', lineWidth: 1 });
-    drawConnectors(ctx, face,
-      window.FACEMESH_LEFT_EYE,
-      { color: 'rgba(91,138,245,0.7)', lineWidth: 1 });
-    drawConnectors(ctx, face,
-      window.FACEMESH_LIPS,
-      { color: 'rgba(245,91,138,0.7)', lineWidth: 1.2 });
-    lmCount += face.length;
-    parts++;
-    setCard('face','face', true, '✓ 468 pts');
-    setConf('face', 0.9);
-  } else {
-    setCard('face','face', false, '—');
-    setConf('face', 0);
-  }
-
-  /* ── Pose skeleton ── */
-  if (pose && togPose.checked) {
-    // Torso
-    drawConnection(pose, POSE.L_SHOULDER, POSE.R_SHOULDER, COLORS.torso, 2.5);
-    drawConnection(pose, POSE.L_HIP,      POSE.R_HIP,      COLORS.torso, 2.5);
-    drawConnection(pose, POSE.L_SHOULDER, POSE.L_HIP,      COLORS.torso, 2.5);
-    drawConnection(pose, POSE.R_SHOULDER, POSE.R_HIP,      COLORS.torso, 2.5);
-
-    // Left arm
-    drawConnection(pose, POSE.L_SHOULDER, POSE.L_ELBOW, COLORS.leftArm, 3);
-    drawConnection(pose, POSE.L_ELBOW,    POSE.L_WRIST, COLORS.leftArm, 3);
-    drawConnection(pose, POSE.L_WRIST,    POSE.L_PINKY, COLORS.leftArm, 2);
-    drawConnection(pose, POSE.L_WRIST,    POSE.L_INDEX, COLORS.leftArm, 2);
-    drawConnection(pose, POSE.L_WRIST,    POSE.L_THUMB, COLORS.leftArm, 2);
-
-    // Right arm
-    drawConnection(pose, POSE.R_SHOULDER, POSE.R_ELBOW, COLORS.rightArm, 3);
-    drawConnection(pose, POSE.R_ELBOW,    POSE.R_WRIST, COLORS.rightArm, 3);
-    drawConnection(pose, POSE.R_WRIST,    POSE.R_PINKY, COLORS.rightArm, 2);
-    drawConnection(pose, POSE.R_WRIST,    POSE.R_INDEX, COLORS.rightArm, 2);
-    drawConnection(pose, POSE.R_WRIST,    POSE.R_THUMB, COLORS.rightArm, 2);
-
-    // Left leg
-    drawConnection(pose, POSE.L_HIP,   POSE.L_KNEE,        COLORS.leftLeg, 3);
-    drawConnection(pose, POSE.L_KNEE,  POSE.L_ANKLE,       COLORS.leftLeg, 3);
-    drawConnection(pose, POSE.L_ANKLE, POSE.L_HEEL,        COLORS.leftFoot, 2.5);
-    drawConnection(pose, POSE.L_ANKLE, POSE.L_FOOT_INDEX,  COLORS.leftFoot, 2.5);
-    drawConnection(pose, POSE.L_HEEL,  POSE.L_FOOT_INDEX,  COLORS.leftFoot, 2);
-
-    // Right leg
-    drawConnection(pose, POSE.R_HIP,   POSE.R_KNEE,        COLORS.rightLeg, 3);
-    drawConnection(pose, POSE.R_KNEE,  POSE.R_ANKLE,       COLORS.rightLeg, 3);
-    drawConnection(pose, POSE.R_ANKLE, POSE.R_HEEL,        COLORS.rightFoot, 2.5);
-    drawConnection(pose, POSE.R_ANKLE, POSE.R_FOOT_INDEX,  COLORS.rightFoot, 2.5);
-    drawConnection(pose, POSE.R_HEEL,  POSE.R_FOOT_INDEX,  COLORS.rightFoot, 2);
-
-    // Dots on key joints
-    const joints = [
-      [POSE.L_SHOULDER, COLORS.leftArm],  [POSE.R_SHOULDER, COLORS.rightArm],
-      [POSE.L_ELBOW,    COLORS.leftArm],  [POSE.R_ELBOW,    COLORS.rightArm],
-      [POSE.L_WRIST,    COLORS.leftArm],  [POSE.R_WRIST,    COLORS.rightArm],
-      [POSE.L_HIP,      COLORS.torso],    [POSE.R_HIP,      COLORS.torso],
-      [POSE.L_KNEE,     COLORS.leftLeg],  [POSE.R_KNEE,     COLORS.rightLeg],
-      [POSE.L_ANKLE,    COLORS.leftFoot], [POSE.R_ANKLE,    COLORS.rightFoot],
-      [POSE.L_HEEL,     COLORS.leftFoot], [POSE.R_HEEL,     COLORS.rightFoot],
-      [POSE.L_FOOT_INDEX, COLORS.leftFoot], [POSE.R_FOOT_INDEX, COLORS.rightFoot]
-    ];
-    joints.forEach(([idx, col]) => drawDot(pose, idx, col));
-
-    // Labels
-    drawLabel(pose, POSE.L_SHOULDER, 'L.Shoulder', COLORS.leftArm);
-    drawLabel(pose, POSE.R_SHOULDER, 'R.Shoulder', COLORS.rightArm);
-    drawLabel(pose, POSE.L_ELBOW,    'L.Elbow',    COLORS.leftArm);
-    drawLabel(pose, POSE.R_ELBOW,    'R.Elbow',    COLORS.rightArm);
-    drawLabel(pose, POSE.L_HIP,      'L.Hip',      COLORS.torso);
-    drawLabel(pose, POSE.R_HIP,      'R.Hip',      COLORS.torso);
-    drawLabel(pose, POSE.L_KNEE,     'L.Knee',     COLORS.leftLeg);
-    drawLabel(pose, POSE.R_KNEE,     'R.Knee',     COLORS.rightLeg);
-    drawLabel(pose, POSE.L_ANKLE,    'L.Ankle',    COLORS.leftFoot);
-    drawLabel(pose, POSE.R_ANKLE,    'R.Ankle',    COLORS.rightFoot);
-    drawLabel(pose, POSE.L_HEEL,     'L.Heel',     COLORS.leftFoot);
-    drawLabel(pose, POSE.R_HEEL,     'R.Heel',     COLORS.rightFoot);
-    drawLabel(pose, POSE.L_FOOT_INDEX,'L.Toe',     COLORS.leftFoot);
-    drawLabel(pose, POSE.R_FOOT_INDEX,'R.Toe',     COLORS.rightFoot);
-
-    lmCount += pose.length;
-
-    // Determine what's detected
-    const armVis = isVisible(pose, POSE.L_ELBOW) || isVisible(pose, POSE.R_ELBOW);
-    const legVis = isVisible(pose, POSE.L_KNEE)  || isVisible(pose, POSE.R_KNEE);
-    const torsoVis = isVisible(pose, POSE.L_SHOULDER) && isVisible(pose, POSE.R_SHOULDER);
-    const lFootVis = isVisible(pose, POSE.L_ANKLE);
-    const rFootVis = isVisible(pose, POSE.R_ANKLE);
-    const lArmVis  = isVisible(pose, POSE.L_ELBOW);
-    const rArmVis  = isVisible(pose, POSE.R_ELBOW);
-
-    setCard('left-foot',  'foot',  lFootVis, lFootVis ? '✓ Detected' : '—');
-    setCard('right-foot', 'foot',  rFootVis, rFootVis ? '✓ Detected' : '—');
-    setCard('arms',       'arm',   armVis,   armVis   ? '✓ Detected' : '—');
-    setCard('legs',       'leg',   legVis,   legVis   ? '✓ Detected' : '—');
-    setCard('torso',      'torso', torsoVis, torsoVis ? '✓ Detected' : '—');
-
-    if (armVis) parts++;
-    if (legVis) parts++;
-    if (torsoVis) parts++;
-    if (lFootVis) parts++;
-    if (rFootVis) parts++;
-
-    // Pose confidence (average of visible landmarks)
-    const visSum = pose.reduce((s,l) => s + (l.visibility || 0), 0) / pose.length;
-    setConf('pose', visSum);
-  } else {
-    ['left-foot','right-foot','arms','legs','torso'].forEach(id =>
-      setCard(id, 'foot', false, '—'));
-    setConf('pose', 0);
-  }
-
-  /* ── Hands ── */
-  drawHand(lh, COLORS.leftHand);
-  drawHand(rh, COLORS.rightHand);
-
-  if (lh) {
-    lmCount += lh.length;
-    parts++;
-    setCard('left-hand', 'hand', true, '✓ 21 pts');
-    drawLabel(lh, 0, 'L.Hand', COLORS.leftHand);
-    setConf('lh', 0.95);
-  } else {
-    setCard('left-hand', 'hand', false, '—');
-    setConf('lh', 0);
-  }
-  if (rh) {
-    lmCount += rh.length;
-    parts++;
-    setCard('right-hand', 'hand', true, '✓ 21 pts');
-    drawLabel(rh, 0, 'R.Hand', COLORS.rightHand);
-    setConf('rh', 0.95);
-  } else {
-    setCard('right-hand', 'hand', false, '—');
-    setConf('rh', 0);
-  }
-
+  ctx.beginPath();
+  FACE_OVAL.forEach((i,k)=>{
+    const lm=lms[i];if(!lm)return;
+    const x=lm.x*W,y=lm.y*H;
+    k===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.strokeStyle=faceCol;ctx.lineWidth=1.5;
+  ctx.shadowColor=faceCol;ctx.shadowBlur=15;ctx.stroke();
   ctx.restore();
 
-  // Update stats
-  document.getElementById('stat-landmarks').textContent = lmCount;
-  document.getElementById('stat-parts').textContent = parts;
-  partsDetected = parts;
-  totalLandmarks = lmCount;
-}
-
-/* ─── Start camera ─── */
-async function startCamera() {
-  startBtn.disabled = true;
-  errMsg.style.display = 'none';
-  loadOverlay.classList.remove('hidden');
-
-  setStatus('loading', 'Loading model…');
-
-  // Create Holistic
-  const holistic = new Holistic({
-    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`
-  });
-
-  holistic.setOptions({
-    modelComplexity: 1,
-    smoothLandmarks: true,
-    enableSegmentation: false,
-    smoothSegmentation: false,
-    refineFaceLandmarks: true,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
-  });
-
-  holistic.onResults(onResults);
-
-  // Request camera
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-      audio: false
+  // Eyes
+  function drawEye(pts,col){
+    ctx.save();ctx.beginPath();
+    pts.forEach((i,k)=>{
+      const lm=lms[i];if(!lm)return;
+      const x=lm.x*W,y=lm.y*H;
+      k===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
     });
-    video.srcObject = stream;
-    await new Promise(r => video.onloadedmetadata = r);
-    await video.play();
-  } catch(e) {
-    loadOverlay.classList.add('hidden');
-    errMsg.style.display = 'block';
-    errMsg.textContent = '⚠️ ' + (e.message || 'Camera access denied.');
-    startBtn.disabled = false;
-    setStatus('error', 'Camera error');
-    return;
+    ctx.closePath();
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;
+    ctx.shadowColor=col;ctx.shadowBlur=12;ctx.stroke();
+    ctx.restore();
   }
+  drawEye(FACE_LEFT_EYE,'#00f5ff');
+  drawEye(FACE_RIGHT_EYE,'#ff00ff');
 
-  resizeCanvas(video.videoWidth, video.videoHeight);
+  // Lips
+  ctx.save();ctx.beginPath();
+  FACE_LIPS_OUTER.forEach((i,k)=>{
+    const lm=lms[i];if(!lm)return;
+    const x=lm.x*W,y=lm.y*H;
+    k===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.strokeStyle='#ff6b6b';ctx.lineWidth=1.5;
+  ctx.shadowColor='#ff6b6b';ctx.shadowBlur=10;ctx.stroke();
+  ctx.restore();
 
-  // Camera utility
-  cameraInstance = new Camera(video, {
-    onFrame: async () => {
-      await holistic.send({ image: video });
-    },
-    width: video.videoWidth,
-    height: video.videoHeight
+  // Dot markers on key face landmarks (nose, chin, forehead, cheeks)
+  [1,9,168,4,5,195,197,6,351,10,152,234,454].forEach(i=>{
+    const lm=lms[i];if(!lm)return;
+    const x=lm.x*W,y=lm.y*H;
+    glowCircle(ctx,x,y,2,'#a29bfe',14);
   });
 
-  try {
-    await cameraInstance.start();
-  } catch(e) {
-    console.warn('Camera utility error:', e);
-  }
-
-  cameraRunning = true;
-  permOverlay.classList.add('hidden');
-  loadOverlay.classList.add('hidden');
-  setStatus('ready', 'Running');
+  // Iris special glow (if refined)
+  [468,469,470,471,472,473,474,475,476,477].forEach(i=>{
+    if(!lms[i])return;
+    glowCircle(ctx,lms[i].x*W,lms[i].y*H,2,'#ffe600',18);
+  });
 }
 
-/* ─── Status helper ─── */
-function setStatus(state, text) {
-  statusDot.className = state === 'ready' ? 'ready' : state === 'error' ? 'error' : '';
-  statusText.textContent = text;
+/* ── PARTICLES UPDATE ── */
+function updateParticles(){
+  if(!fx.particles)return;
+  particles=particles.filter(p=>p.life>0);
+  if(particles.length>600)particles.splice(0,particles.length-600);
+  particles.forEach(p=>{p.update();p.draw(ctx);});
 }
 
-/* ─── Snapshot ─── */
-document.getElementById('btn-snapshot').addEventListener('click', () => {
-  const link = dlLink;
-  link.href = canvas.toDataURL('image/png');
-  link.download = `limb-detection-${Date.now()}.png`;
-  link.click();
-});
+/* ── RESULTS CALLBACK ── */
+function onResults(results){
+  // FPS
+  const now=performance.now();
+  fpsArr.push(1000/(now-lastTime));lastTime=now;
+  if(fpsArr.length>30)fpsArr.shift();
+  fps=Math.round(fpsArr.reduce((a,b)=>a+b,0)/fpsArr.length);
+  document.getElementById('hud-fps').textContent=fps+' FPS';
 
-/* ─── Stop ─── */
-document.getElementById('btn-stop').addEventListener('click', () => {
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(t => t.stop());
-    video.srcObject = null;
+  // Setup canvas size
+  if(!canvas.width||canvas.width!==results.image.width){
+    canvas.width=results.image.width;
+    canvas.height=results.image.height;
   }
-  if (cameraInstance) {
-    try { cameraInstance.stop(); } catch(e) {}
-    cameraInstance = null;
-  }
-  cameraRunning = false;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  setStatus('', 'Stopped');
-  permOverlay.classList.remove('hidden');
-  startBtn.disabled = false;
-  errMsg.style.display = 'none';
-});
 
-/* ─── Start button ─── */
-startBtn.addEventListener('click', startCamera);
+  ctx.save();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* ─── Canvas mouse tooltip (hover nearest landmark) ─── */
-canvas.addEventListener('mousemove', e => {
-  if (!lastResults) return;
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width  / rect.width;
-  const scaleY = canvas.height / rect.height;
-  let mx = (e.clientX - rect.left) * scaleX;
-  let my = (e.clientY - rect.top)  * scaleY;
-  if (togMirror.checked) mx = canvas.width - mx;
+  // Draw video frame
+  ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
 
-  const W = canvas.width, H = canvas.height;
-  let closest = null, minD = Infinity;
+  // Tinted overlay (subtle)
+  ctx.fillStyle='rgba(0,0,30,0.2)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  const NAMED = {
-    0:'Nose',11:'L.Shoulder',12:'R.Shoulder',13:'L.Elbow',14:'R.Elbow',
-    15:'L.Wrist',16:'R.Wrist',23:'L.Hip',24:'R.Hip',
-    25:'L.Knee',26:'R.Knee',27:'L.Ankle',28:'R.Ankle',
-    29:'L.Heel',30:'R.Heel',31:'L.Toe',32:'R.Toe'
-  };
+  // Effects
+  if(results.poseLandmarks)drawPose(results.poseLandmarks);
+  if(results.rightHandLandmarks)drawHand(results.rightHandLandmarks,'right');
+  if(results.leftHandLandmarks)drawHand(results.leftHandLandmarks,'left');
+  if(results.faceLandmarks)drawFace(results.faceLandmarks);
 
-  if (lastResults.poseLandmarks) {
-    lastResults.poseLandmarks.forEach((lm, i) => {
-      const dx = lm.x * W - mx, dy = lm.y * H - my;
-      const d = Math.sqrt(dx*dx + dy*dy);
-      if (d < minD && d < 20) { minD = d; closest = { name: NAMED[i] || `Pose #${i}`, vis: lm.visibility }; }
+  updateParticles();
+  ctx.restore();
+
+  // HUD status dots
+  document.getElementById('dot-face').classList.toggle('active',!!results.faceLandmarks);
+  document.getElementById('dot-lhand').classList.toggle('active',!!results.leftHandLandmarks);
+  document.getElementById('dot-rhand').classList.toggle('active',!!results.rightHandLandmarks);
+  document.getElementById('dot-pose').classList.toggle('active',!!results.poseLandmarks);
+
+  // HUD info text
+  let detected=[];
+  if(results.faceLandmarks)detected.push('FACE');
+  if(results.leftHandLandmarks)detected.push('L-HAND');
+  if(results.rightHandLandmarks)detected.push('R-HAND');
+  if(results.poseLandmarks)detected.push('BODY');
+  document.getElementById('hud-info').textContent=
+    detected.length?'TRACKING: '+detected.join(' · '):'SCANNING…';
+}
+
+/* ── START TRACKING ── */
+async function startTracking(){
+  const btn=document.getElementById('start-btn');
+  btn.disabled=true;btn.textContent='⏳ Loading model…';
+
+  try{
+    // Show canvas
+    document.getElementById('cam-placeholder').classList.add('hidden');
+    document.getElementById('video-el').style.display='none';
+    canvas.style.display='block';
+    document.getElementById('hud-overlay').style.display='block';
+    document.getElementById('controls').classList.remove('hidden');
+    btn.classList.add('hidden');
+
+    // Setup MediaPipe Holistic
+    holistic=new Holistic({
+      locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${f}`
     });
-  }
 
-  if (closest) {
-    tooltip.style.display = 'block';
-    tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
-    tooltip.style.top  = (e.clientY - rect.top  - 10) + 'px';
-    tooltip.textContent = `📌 ${closest.name}  (vis: ${(closest.vis*100).toFixed(0)}%)`;
-  } else {
-    tooltip.style.display = 'none';
+    holistic.setOptions({
+      modelComplexity: isMobile?0:1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      smoothSegmentation: false,
+      refineFaceLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    holistic.onResults(onResults);
+
+    // Start camera
+    const cam=new Camera(video,{
+      onFrame:async()=>{
+        if(holistic)await holistic.send({image:video});
+      },
+      width: isMobile?480:640,
+      height: isMobile?360:480
+    });
+    await cam.start();
+    tracking=true;
+
+    document.getElementById('hud-info').textContent='MODEL READY — SCANNING…';
+
+  }catch(err){
+    btn.disabled=false;btn.classList.remove('hidden');
+    btn.textContent='⚠️ Error — Retry';
+    console.error(err);
+    alert('Camera access required. Please allow camera permissions and try again.');
   }
+}
+
+/* ── EFFECT TOGGLES ── */
+function toggleEffect(name){
+  fx[name]=!fx[name];
+  const el=document.getElementById('btn-'+name);
+  if(el)el.classList.toggle('active',fx[name]);
+  // Clear trails when disabled
+  if(name==='trails')Object.keys(trails).forEach(k=>trails[k]=[]);
+}
+function toggleMirror(){
+  mirrorOn=!mirrorOn;
+  canvas.style.transform=mirrorOn?'scaleX(-1)':'scaleX(1)';
+  document.getElementById('btn-mirror').classList.toggle('active',mirrorOn);
+}
+
+/* ═══════════════════════════════════════════
+   SMOOTH SCROLL FOR ANCHOR LINKS
+═══════════════════════════════════════════ */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    const target=document.querySelector(a.getAttribute('href'));
+    if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+  });
 });
-canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+/* ═══════════════════════════════════════════
+   STAGGERED CARD OBSERVER
+═══════════════════════════════════════════ */
+const cardObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const delay=parseInt(e.target.dataset.delay||0);
+      setTimeout(()=>e.target.classList.add('visible'),delay);
+      cardObs.unobserve(e.target);
+    }
+  });
+},{threshold:.1});
+document.querySelectorAll('.card,.tl-item,.spec-item').forEach(el=>cardObs.observe(el));
 </script>
 </body>
 </html>
