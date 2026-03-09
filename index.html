@@ -3,741 +3,834 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>NECRO//PAVER v1.0</title>
+  <title>CYBERBLOCK // CAM HUD</title>
   <style>
     :root{
-      --bg:#050709;
-      --panel:#070c0aee;
-      --grid:#0e2a1f;
-      --neon:#25ff7a;
-      --neon2:#00d8ff;
-      --warn:#ff3b7a;
-      --text:#b9ffd8;
-      --muted:#6bd9a1;
-      --shadow: 0 0 18px rgba(37,255,122,.18);
-      --scan: rgba(37,255,122,.06);
+      --neon:#00ff66;
+      --neon2:#00c853;
+      --bg:#030608;
+      --danger:#ff2a6d;
+      --ink: rgba(0,255,102,.12);
+      --ink2: rgba(0,255,102,.25);
+      --glass: rgba(0,0,0,.45);
+      --glass2: rgba(0,0,0,.62);
     }
-    html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; overflow:hidden;}
-    #wrap{position:fixed; inset:0; display:grid; grid-template-rows:auto 1fr auto;}
-    header, footer{
-      background:linear-gradient(180deg, rgba(7,12,10,.92), rgba(7,12,10,.72));
-      border-bottom:1px solid rgba(37,255,122,.18);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      padding:10px 10px;
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; margin:0; background:var(--bg); color:#d7ffe6; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; overflow:hidden; }
+
+    /* Camera background */
+    #wrap{
+      position:fixed; inset:0; background:#000;
     }
-    footer{
-      border-top:1px solid rgba(37,255,122,.18);
-      border-bottom:none;
-    }
-    .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-    .brand{
-      display:flex; align-items:baseline; gap:10px; margin-right:auto;
-    }
-    .brand b{color:var(--neon); letter-spacing:.6px;}
-    .brand small{color:var(--muted); opacity:.9;}
-    .btn{
-      border:1px solid rgba(37,255,122,.25);
-      background:rgba(0,0,0,.28);
-      color:var(--text);
-      padding:10px 10px;
-      border-radius:10px;
-      cursor:pointer;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      min-height:42px;
-    }
-    .btn:active{transform: translateY(1px);}
-    .btn.primary{border-color:rgba(37,255,122,.6); box-shadow:0 0 14px rgba(37,255,122,.16) inset;}
-    .btn.danger{border-color:rgba(255,59,122,.55); color:#ffd0df;}
-    .btn.on{background:rgba(37,255,122,.10);}
-    .pill{
-      padding:8px 10px;
-      border:1px dashed rgba(37,255,122,.25);
-      border-radius:999px;
-      color:var(--muted);
-      font-size:12px;
-      white-space:nowrap;
-    }
-    #stage{
-      position:relative;
-      background:
-        radial-gradient(1200px 900px at 20% 20%, rgba(0,216,255,.06), transparent 60%),
-        radial-gradient(900px 700px at 80% 60%, rgba(37,255,122,.07), transparent 62%),
-        linear-gradient(0deg, rgba(0,0,0,.0), rgba(0,0,0,.0));
-    }
-    /* scanlines */
-    #stage::after{
-      content:"";
+    video{
       position:absolute; inset:0;
-      background: repeating-linear-gradient(
-        180deg,
-        rgba(0,0,0,0) 0px,
-        rgba(0,0,0,0) 3px,
-        var(--scan) 4px
-      );
-      pointer-events:none;
-      mix-blend-mode: screen;
-      opacity:.6;
+      width:100%; height:100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* selfie mirror */
+      filter: contrast(1.08) saturate(1.05) brightness(0.98);
+      background:#000;
     }
+
+    /* Overlay canvases */
     canvas{
       position:absolute; inset:0;
       width:100%; height:100%;
       image-rendering: pixelated;
-    }
-    #toast{
-      position:absolute;
-      left:12px; bottom:12px;
-      background:rgba(7,12,10,.78);
-      border:1px solid rgba(37,255,122,.22);
-      border-radius:12px;
-      padding:10px 12px;
-      max-width:min(520px, calc(100% - 24px));
-      box-shadow: var(--shadow);
-      font-size:12px;
-      line-height:1.35;
       pointer-events:none;
-      opacity:.92;
     }
-    #toast b{color:var(--neon);}
-    #toast i{color:var(--neon2); font-style:normal;}
-    .kbd{
-      border:1px solid rgba(37,255,122,.25);
-      border-bottom-color:rgba(37,255,122,.4);
-      border-radius:8px;
-      padding:2px 6px;
-      font-size:11px;
-      color:var(--text);
-      background:rgba(0,0,0,.18);
-      display:inline-block;
-      margin:0 2px;
+
+    /* HUD */
+    #hud{
+      position:absolute; inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,.35) 100%),
+        repeating-linear-gradient(to bottom, rgba(0,255,102,.08), rgba(0,255,102,.08) 1px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 7px);
+      mix-blend-mode: screen;
+      opacity:.55;
     }
-    .right{margin-left:auto;}
-    a{color:var(--neon2); text-decoration:none;}
+
+    /* Control panel */
+    #panel{
+      position:absolute;
+      left:10px; right:10px; top:10px;
+      display:flex; gap:8px; align-items:stretch;
+      pointer-events:auto;
+    }
+    .card{
+      flex:1;
+      background: linear-gradient(180deg, var(--glass), var(--glass2));
+      border: 1px solid rgba(0,255,102,.18);
+      box-shadow: 0 8px 30px rgba(0,0,0,.45);
+      border-radius: 12px;
+      padding:10px 10px;
+      min-width: 130px;
+      backdrop-filter: blur(6px);
+    }
+    .row{ display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    .title{
+      font-weight:700; letter-spacing:.14em; font-size:12px; color:rgba(0,255,102,.9);
+      text-transform:uppercase;
+    }
+    .small{ font-size:12px; opacity:.9; }
+    button, select, input[type="range"]{
+      pointer-events:auto;
+    }
+    button{
+      width:100%;
+      border-radius: 10px;
+      border:1px solid rgba(0,255,102,.35);
+      background: radial-gradient(120% 120% at 50% 0%, rgba(0,255,102,.22) 0%, rgba(0,0,0,.35) 55%, rgba(0,0,0,.55) 100%);
+      color: #dfffea;
+      padding:10px 12px;
+      font-weight:700;
+      letter-spacing:.10em;
+      text-transform: uppercase;
+      cursor:pointer;
+      box-shadow: 0 8px 22px rgba(0,0,0,.35);
+    }
+    button:active{ transform: translateY(1px); }
+    button.danger{
+      border-color: rgba(255,42,109,.45);
+      background: radial-gradient(120% 120% at 50% 0%, rgba(255,42,109,.22) 0%, rgba(0,0,0,.35) 55%, rgba(0,0,0,.55) 100%);
+    }
+    select{
+      width:100%;
+      border-radius:10px;
+      border:1px solid rgba(0,255,102,.25);
+      background: rgba(0,0,0,.4);
+      color:#dfffea;
+      padding:10px 10px;
+      outline:none;
+    }
+    .meter{
+      font-variant-numeric: tabular-nums;
+      font-size:12px;
+      opacity:.95;
+    }
+
+    /* Bottom help */
+    #help{
+      position:absolute; left:10px; right:10px; bottom:10px;
+      pointer-events:none;
+      background: linear-gradient(180deg, rgba(0,0,0,.0), rgba(0,0,0,.55));
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(0,255,102,.14);
+      box-shadow: 0 12px 30px rgba(0,0,0,.45);
+      backdrop-filter: blur(6px);
+    }
+    #help .k{ color: rgba(0,255,102,.95); font-weight:700; }
+    #help .d{ opacity:.92; font-size:12px; line-height:1.25rem; }
+
+    /* Fullscreen touch layer */
+    #touch{
+      position:absolute; inset:0;
+      touch-action: none; /* we handle panning/zooming */
+      pointer-events:auto;
+      background: transparent;
+    }
+
+    /* Status banner */
+    #status{
+      position:absolute; right:12px; top:74px;
+      pointer-events:none;
+      padding:8px 10px;
+      background: rgba(0,0,0,.55);
+      border:1px solid rgba(0,255,102,.18);
+      border-radius: 10px;
+      font-size: 12px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(0,255,102,.9);
+      max-width: 62vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #status.bad{ color: rgba(255,42,109,.95); border-color: rgba(255,42,109,.25); }
   </style>
 </head>
 <body>
-<div id="wrap">
-  <header>
-    <div class="row">
-      <div class="brand">
-        <b>NECRO//PAVER</b>
-        <small>hacker-themed block sim • ultra-light canvas</small>
+  <div id="wrap">
+    <video id="vid" playsinline muted></video>
+    <canvas id="world"></canvas>
+    <canvas id="fx"></canvas>
+    <div id="hud"></div>
+    <div id="touch" aria-label="Touch layer"></div>
+
+    <div id="panel">
+      <div class="card" style="flex:1.2">
+        <div class="row" style="margin-bottom:8px">
+          <div class="title">CYBERBLOCK</div>
+          <div class="meter" id="fps">FPS: --</div>
+        </div>
+        <button id="startBtn">START CAMERA</button>
+        <div style="height:8px"></div>
+        <button id="fsBtn">FULLSCREEN</button>
       </div>
 
-      <button class="btn primary" id="m_finger" title="Add blocks with finger">FINGER: ADD</button>
-      <button class="btn" id="m_pave" title="Pave tiles (floor)">PAVE</button>
-      <button class="btn danger" id="m_fist" title="Break blocks with skeleton fist">FIST: BREAK</button>
-      <button class="btn" id="m_hand" title="Move everything (grab & drag the world)">HAND: MOVE</button>
+      <div class="card">
+        <div class="title" style="margin-bottom:8px">MODE</div>
+        <select id="modeSel">
+          <option value="place">PLACE / PAVE</option>
+          <option value="break">BREAK</option>
+          <option value="move">MOVE WORLD</option>
+        </select>
+        <div style="height:10px"></div>
+        <div class="row">
+          <div class="small">Zoom</div>
+          <div class="meter" id="zoomLabel">1.00x</div>
+        </div>
+        <input id="zoomRange" type="range" min="0.6" max="2.0" step="0.01" value="1.0" style="width:100%">
+      </div>
 
-      <span class="pill" id="stat">fps: -- • chunks: -- • mode: --</span>
+      <div class="card">
+        <div class="title" style="margin-bottom:8px">PERF</div>
+        <div class="row">
+          <div class="small">Quality</div>
+          <select id="qSel" style="width: 56%">
+            <option value="1">HIGH</option>
+            <option value="0.85" selected>MED</option>
+            <option value="0.7">LOW</option>
+            <option value="0.55">ULTRA LOW</option>
+          </select>
+        </div>
+        <div style="height:8px"></div>
+        <button class="danger" id="clearBtn">CLEAR WORLD</button>
+      </div>
     </div>
-  </header>
 
-  <div id="stage">
-    <canvas id="c"></canvas>
-    <div id="toast">
-      <b>Controls</b>:
-      tap/drag to act • <i>HAND</i> drags the whole world • zoom: <span class="kbd">+</span>/<span class="kbd">-</span> •
-      <span class="kbd">L</span> low power • <span class="kbd">R</span> reset.<br/>
-      Tip: enable <b>Low Power</b> on weak phones for zero stutter.
+    <div id="status">READY // tap START CAMERA</div>
+
+    <div id="help">
+      <div class="d">
+        <span class="k">Tap</span> place • <span class="k">Drag</span> pave • <span class="k">Double‑tap</span> break •
+        <span class="k">Long‑press</span> FIST SMASH • <span class="k">Two‑finger</span> move • <span class="k">Pinch</span> zoom
+      </div>
     </div>
   </div>
 
-  <footer>
-    <div class="row">
-      <button class="btn" id="zoomIn">Zoom +</button>
-      <button class="btn" id="zoomOut">Zoom -</button>
-      <button class="btn" id="lowPower">Low Power: OFF</button>
-      <button class="btn" id="reset">Reset World</button>
-
-      <span class="pill right">
-        GitHub Pages: commit as <b>index.html</b> → Settings → Pages → Deploy from branch.
-      </span>
-    </div>
-  </footer>
-</div>
-
 <script>
 (() => {
-  "use strict";
+  const vid = document.getElementById('vid');
+  const cWorld = document.getElementById('world');
+  const cFx = document.getElementById('fx');
+  const ctx = cWorld.getContext('2d', { alpha:true, desynchronized:true });
+  const fx = cFx.getContext('2d', { alpha:true, desynchronized:true });
 
-  // ---------- Config tuned for low-end phones ----------
-  const TILE = 16;             // base tile size (screen pixels before zoom)
-  const CHUNK = 32;            // tiles per chunk side
-  const WORLD_W = 256;         // tiles
-  const WORLD_H = 256;         // tiles
-  const MAX_CACHE_CHUNKS = 72; // LRU cap (prevents memory growth when you pan far)
-  const BACKGROUND_GRID = true;
+  const startBtn = document.getElementById('startBtn');
+  const fsBtn = document.getElementById('fsBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const fpsEl = document.getElementById('fps');
+  const statusEl = document.getElementById('status');
+  const touch = document.getElementById('touch');
+  const modeSel = document.getElementById('modeSel');
+  const zoomRange = document.getElementById('zoomRange');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const qSel = document.getElementById('qSel');
 
-  // render scale (internal resolution) — capped to reduce lag
-  const DPR_CAP = 1.5;
-
-  // Tile types
-  const T_EMPTY = 0;
-  const T_BLOCK = 1;
-  const T_PAVE  = 2;
-
-  // Modes
-  const MODE_FINGER = "FINGER";
-  const MODE_PAVE   = "PAVE";
-  const MODE_FIST   = "FIST";
-  const MODE_HAND   = "HAND";
-
-  // ---------- DOM ----------
-  const canvas = document.getElementById("c");
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
-
-  const stat = document.getElementById("stat");
-  const btnFinger = document.getElementById("m_finger");
-  const btnPave = document.getElementById("m_pave");
-  const btnFist = document.getElementById("m_fist");
-  const btnHand = document.getElementById("m_hand");
-  const btnZoomIn = document.getElementById("zoomIn");
-  const btnZoomOut = document.getElementById("zoomOut");
-  const btnLowPower = document.getElementById("lowPower");
-  const btnReset = document.getElementById("reset");
-
-  // ---------- World data ----------
-  const world = new Uint8Array(WORLD_W * WORLD_H);
-
-  function idx(x,y){ return x + y * WORLD_W; }
-  function inBounds(x,y){ return x>=0 && y>=0 && x<WORLD_W && y<WORLD_H; }
-
-  // seed a simple arena
-  function seedWorld() {
-    world.fill(T_EMPTY);
-    // Border blocks
-    for (let x=0;x<WORLD_W;x++){
-      world[idx(x,0)] = T_BLOCK;
-      world[idx(x,WORLD_H-1)] = T_BLOCK;
-    }
-    for (let y=0;y<WORLD_H;y++){
-      world[idx(0,y)] = T_BLOCK;
-      world[idx(WORLD_W-1,y)] = T_BLOCK;
-    }
-    // Some scattered blocks + a paved strip
-    for (let i=0;i<1400;i++){
-      const x = (Math.random()*WORLD_W)|0;
-      const y = (Math.random()*WORLD_H)|0;
-      if (x<2 || y<2 || x>WORLD_W-3 || y>WORLD_H-3) continue;
-      world[idx(x,y)] = (Math.random()<0.78) ? T_BLOCK : T_PAVE;
-    }
-    for (let x=8;x<WORLD_W-8;x++){
-      world[idx(x, (WORLD_H/2)|0)] = T_PAVE;
-    }
-    markAllChunksDirty();
-  }
-
-  // ---------- Chunk cache (fast rendering) ----------
-  const chunkCache = new Map(); // key -> {can, cctx, dirty, lastUsed}
-  let useCounter = 0;
-
-  function chunkKey(cx, cy){ return cx + "," + cy; }
-
-  function getChunk(cx, cy){
-    const key = chunkKey(cx,cy);
-    let obj = chunkCache.get(key);
-    if (!obj){
-      const can = document.createElement("canvas");
-      can.width = CHUNK * TILE;
-      can.height = CHUNK * TILE;
-      const cctx = can.getContext("2d", { alpha:true });
-      obj = { can, cctx, dirty:true, lastUsed:0, cx, cy };
-      chunkCache.set(key, obj);
-      enforceLRU();
-    }
-    obj.lastUsed = ++useCounter;
-    return obj;
-  }
-
-  function enforceLRU(){
-    if (chunkCache.size <= MAX_CACHE_CHUNKS) return;
-    // Remove least recently used chunks
-    let oldestKey = null;
-    let oldest = Infinity;
-    for (const [k,v] of chunkCache){
-      if (v.lastUsed < oldest){
-        oldest = v.lastUsed;
-        oldestKey = k;
-      }
-    }
-    if (oldestKey) chunkCache.delete(oldestKey);
-  }
-
-  function chunkFromTile(tx, ty){
-    return { cx: (tx / CHUNK) | 0, cy: (ty / CHUNK) | 0 };
-  }
-
-  function markChunkDirtyByTile(tx, ty){
-    const {cx, cy} = chunkFromTile(tx,ty);
-    const obj = getChunk(cx,cy);
-    obj.dirty = true;
-  }
-
-  function markAllChunksDirty(){
-    for (const v of chunkCache.values()) v.dirty = true;
-  }
-
-  function redrawChunk(obj){
-    const { cctx, cx, cy } = obj;
-    const baseX = cx * CHUNK;
-    const baseY = cy * CHUNK;
-
-    cctx.clearRect(0,0,obj.can.width,obj.can.height);
-
-    for (let ly=0; ly<CHUNK; ly++){
-      const y = baseY + ly;
-      if (y >= WORLD_H) break;
-
-      for (let lx=0; lx<CHUNK; lx++){
-        const x = baseX + lx;
-        if (x >= WORLD_W) break;
-
-        const t = world[idx(x,y)];
-        if (t === T_EMPTY) continue;
-
-        const px = lx * TILE;
-        const py = ly * TILE;
-
-        if (t === T_PAVE){
-          // pavement: dark tile with neon edges
-          cctx.fillStyle = "#061510";
-          cctx.fillRect(px,py,TILE,TILE);
-          cctx.strokeStyle = "rgba(37,255,122,.22)";
-          cctx.lineWidth = 1;
-          cctx.strokeRect(px+0.5, py+0.5, TILE-1, TILE-1);
-
-          // little diagonal circuit lines (cheap)
-          cctx.strokeStyle = "rgba(0,216,255,.12)";
-          cctx.beginPath();
-          cctx.moveTo(px+2, py+TILE-3);
-          cctx.lineTo(px+TILE-3, py+2);
-          cctx.stroke();
-        } else if (t === T_BLOCK){
-          // block: darker body with bright top highlight
-          cctx.fillStyle = "#07100d";
-          cctx.fillRect(px,py,TILE,TILE);
-
-          cctx.fillStyle = "rgba(37,255,122,.10)";
-          cctx.fillRect(px+1, py+1, TILE-2, (TILE*0.35)|0);
-
-          cctx.strokeStyle = "rgba(37,255,122,.30)";
-          cctx.lineWidth = 1;
-          cctx.strokeRect(px+0.5, py+0.5, TILE-1, TILE-1);
-
-          cctx.strokeStyle = "rgba(0,216,255,.10)";
-          cctx.beginPath();
-          cctx.moveTo(px+3, py+TILE-5);
-          cctx.lineTo(px+TILE-6, py+TILE-5);
-          cctx.stroke();
-        }
-      }
-    }
-    obj.dirty = false;
-  }
-
-  // ---------- Camera / interaction ----------
-  let mode = MODE_FINGER;
+  // --- World data (sparse map: "x,y" -> type)
+  const blocks = new Map();
+  const tileSizeBase = 38; // screen pixels at zoom=1 (world grid spacing)
   let zoom = 1.0;
-  let camX = (WORLD_W*TILE)/2;
-  let camY = (WORLD_H*TILE)/2;
+  let quality = 0.85; // render scale
+  let camOn = false;
 
-  // Drag state
-  let pointerDown = false;
-  let lastPointerId = null;
-  let lastPX = 0, lastPY = 0;
-  let handDragStartCamX = 0, handDragStartCamY = 0;
-  let handDragStartX = 0, handDragStartY = 0;
+  // Pan offset in screen pixels (world origin shift)
+  let panX = 0, panY = 0;
 
-  // To avoid heavy per-move edits: only apply when tile changes
-  let lastEditTX = -9999, lastEditTY = -9999;
-  let lastEditTime = 0;
+  // Input tracking
+  let pointers = new Map();
+  let lastTapTime = 0;
+  let longPressTimer = null;
+  let longPressArmed = false;
+  let lastPaintCell = null;
 
-  // Low power mode: reduces internal resolution + FPS cap
-  let lowPower = false;
-  let fpsCap = 60;
+  // For pinch
+  let pinchStartDist = 0;
+  let pinchStartZoom = 1.0;
 
-  function setMode(m){
-    mode = m;
-    btnFinger.classList.toggle("primary", m===MODE_FINGER);
-    btnPave.classList.toggle("primary", m===MODE_PAVE);
-    btnFist.classList.toggle("on", m===MODE_FIST);
-    btnHand.classList.toggle("primary", m===MODE_HAND);
+  // For FPS
+  let tPrev = performance.now();
+  let fpsSm = 60;
+
+  function setStatus(msg, bad=false){
+    statusEl.textContent = msg;
+    statusEl.classList.toggle('bad', !!bad);
   }
 
-  function setLowPower(on){
-    lowPower = on;
-    fpsCap = on ? 30 : 60;
-    btnLowPower.textContent = "Low Power: " + (on ? "ON" : "OFF");
-    btnLowPower.classList.toggle("on", on);
-    resize(); // re-evaluate internal resolution
+  function resizeCanvases(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1)); // clamp for perf
+    const w = Math.floor(innerWidth * quality * dpr);
+    const h = Math.floor(innerHeight * quality * dpr);
+    cWorld.width = w; cWorld.height = h;
+    cFx.width = w; cFx.height = h;
+    // Keep CSS full-size; drawing uses scaled coords
+    ctx.setTransform(1,0,0,1,0,0);
+    fx.setTransform(1,0,0,1,0,0);
   }
 
-  btnFinger.onclick = () => setMode(MODE_FINGER);
-  btnPave.onclick = () => setMode(MODE_PAVE);
-  btnFist.onclick = () => setMode(MODE_FIST);
-  btnHand.onclick = () => setMode(MODE_HAND);
+  function screenToWorldCell(sx, sy){
+    // Convert from CSS pixels to canvas pixels then to grid
+    const rect = cWorld.getBoundingClientRect();
+    const cx = (sx - rect.left) * (cWorld.width / rect.width);
+    const cy = (sy - rect.top) * (cWorld.height / rect.height);
 
-  btnZoomIn.onclick = () => { zoom = Math.min(2.2, zoom * 1.15); };
-  btnZoomOut.onclick = () => { zoom = Math.max(0.65, zoom / 1.15); };
-
-  btnLowPower.onclick = () => setLowPower(!lowPower);
-  btnReset.onclick = () => seedWorld();
-
-  window.addEventListener("keydown", (e) => {
-    const k = e.key.toLowerCase();
-    if (k === "r") seedWorld();
-    if (k === "l") setLowPower(!lowPower);
-    if (k === "+") zoom = Math.min(2.2, zoom * 1.15);
-    if (k === "-") zoom = Math.max(0.65, zoom / 1.15);
-    if (k === "1") setMode(MODE_FINGER);
-    if (k === "2") setMode(MODE_PAVE);
-    if (k === "3") setMode(MODE_FIST);
-    if (k === "4") setMode(MODE_HAND);
-  });
-
-  function screenToWorld(sx, sy){
-    // world in "pixel space" (tile pixels)
-    const w = canvas.width, h = canvas.height;
-    const viewScale = zoom * (TILE / TILE); // kept for clarity
-    const wx = camX + (sx - w/2) / viewScale;
-    const wy = camY + (sy - h/2) / viewScale;
-    return { wx, wy };
+    const tile = tileSizeBase * zoom * (cWorld.width / rect.width); // approximate scale
+    const gx = Math.floor((cx - panX) / tile);
+    const gy = Math.floor((cy - panY) / tile);
+    return { gx, gy, cx, cy, tile };
   }
 
-  function worldToTile(wx, wy){
-    const tx = Math.floor(wx / TILE);
-    const ty = Math.floor(wy / TILE);
-    return { tx, ty };
+  function keyOf(gx, gy){ return gx + "," + gy; }
+
+  function placeBlock(gx, gy, type=1){
+    blocks.set(keyOf(gx,gy), type);
+  }
+  function breakBlock(gx, gy){
+    blocks.delete(keyOf(gx,gy));
   }
 
-  function applyEditAt(tx, ty){
-    if (!inBounds(tx,ty)) return;
-
-    const i = idx(tx,ty);
-    const t = world[i];
-
-    if (mode === MODE_FINGER){
-      if (t === T_EMPTY || t === T_PAVE){
-        world[i] = T_BLOCK;
-        markChunkDirtyByTile(tx,ty);
+  function smash(gx, gy, r=1){
+    for(let y=-r; y<=r; y++){
+      for(let x=-r; x<=r; x++){
+        if (x*x + y*y <= r*r) blocks.delete(keyOf(gx+x, gy+y));
       }
-    } else if (mode === MODE_PAVE){
-      if (t !== T_PAVE){
-        world[i] = T_PAVE;
-        markChunkDirtyByTile(tx,ty);
+    }
+    // punch flash
+    flash(gx, gy, 1.8, 'smash');
+  }
+
+  // Lightweight FX
+  const flashes = [];
+  function flash(gx, gy, strength=1, kind='hit'){
+    flashes.push({ gx, gy, strength, kind, t: performance.now() });
+    if (flashes.length > 10) flashes.shift();
+  }
+
+  // Draw stylized cyber skeleton + green hand cursor
+  function drawHUDHandAndSkeleton(pointer){
+    const w = cFx.width, h = cFx.height;
+    fx.clearRect(0,0,w,h);
+
+    // vignette + corners
+    fx.save();
+    fx.globalAlpha = 0.9;
+    fx.strokeStyle = 'rgba(0,255,102,.18)';
+    fx.lineWidth = Math.max(1, Math.floor(w*0.0012));
+    const pad = Math.floor(Math.min(w,h)*0.045);
+    const corner = Math.floor(pad*0.7);
+    // corners
+    function cornerStroke(x,y,dx,dy){
+      fx.beginPath();
+      fx.moveTo(x, y+dy*corner);
+      fx.lineTo(x, y);
+      fx.lineTo(x+dx*corner, y);
+      fx.stroke();
+    }
+    cornerStroke(pad,pad, 1,1);
+    cornerStroke(w-pad,pad, -1,1);
+    cornerStroke(pad,h-pad, 1,-1);
+    cornerStroke(w-pad,h-pad, -1,-1);
+
+    // center reticle
+    fx.globalAlpha = 0.7;
+    fx.beginPath();
+    fx.arc(w/2, h/2, Math.min(w,h)*0.045, 0, Math.PI*2);
+    fx.stroke();
+    fx.beginPath();
+    fx.moveTo(w/2 - 30, h/2); fx.lineTo(w/2 + 30, h/2);
+    fx.moveTo(w/2, h/2 - 30); fx.lineTo(w/2, h/2 + 30);
+    fx.stroke();
+
+    // "Skeleton" stick figure HUD (purely visual)
+    fx.globalAlpha = 0.55;
+    fx.strokeStyle = 'rgba(0,255,102,.25)';
+    fx.lineWidth = Math.max(1, Math.floor(w*0.0011));
+    const sx = w*0.12, sy = h*0.72;
+    const scale = Math.min(w,h)*0.20;
+    // head
+    fx.beginPath(); fx.arc(sx, sy - scale*0.75, scale*0.14, 0, Math.PI*2); fx.stroke();
+    // spine
+    fx.beginPath();
+    fx.moveTo(sx, sy - scale*0.62);
+    fx.lineTo(sx, sy - scale*0.18);
+    fx.stroke();
+    // arms
+    fx.beginPath();
+    fx.moveTo(sx - scale*0.22, sy - scale*0.48);
+    fx.lineTo(sx + scale*0.22, sy - scale*0.48);
+    fx.stroke();
+    // ribs
+    for(let i=0;i<4;i++){
+      const yy = (sy - scale*0.56) + i*(scale*0.08);
+      fx.beginPath();
+      fx.moveTo(sx - scale*0.16, yy);
+      fx.lineTo(sx + scale*0.16, yy);
+      fx.stroke();
+    }
+    // pelvis + legs
+    fx.beginPath();
+    fx.moveTo(sx - scale*0.12, sy - scale*0.18);
+    fx.lineTo(sx + scale*0.12, sy - scale*0.18);
+    fx.stroke();
+    fx.beginPath();
+    fx.moveTo(sx, sy - scale*0.18);
+    fx.lineTo(sx - scale*0.14, sy + scale*0.14);
+    fx.moveTo(sx, sy - scale*0.18);
+    fx.lineTo(sx + scale*0.14, sy + scale*0.14);
+    fx.stroke();
+
+    // Green "cyber hand" cursor (stylized glove)
+    if (pointer){
+      const x = pointer.cx, y = pointer.cy;
+      fx.globalAlpha = 0.9;
+      // glow
+      fx.shadowColor = 'rgba(0,255,102,.55)';
+      fx.shadowBlur = 18;
+      fx.fillStyle = 'rgba(0,255,102,.16)';
+      fx.beginPath(); fx.arc(x, y, 22, 0, Math.PI*2); fx.fill();
+      fx.shadowBlur = 0;
+
+      // hand shape (simple)
+      fx.strokeStyle = 'rgba(0,255,102,.88)';
+      fx.lineWidth = 2;
+      fx.beginPath();
+      // palm
+      fx.moveTo(x-10, y+8);
+      fx.lineTo(x-12, y-2);
+      fx.quadraticCurveTo(x-12,y-14,x-2,y-14);
+      fx.quadraticCurveTo(x+10,y-14,x+10,y-2);
+      fx.lineTo(x+8, y+10);
+      fx.quadraticCurveTo(x+2,y+16,x-6,y+12);
+      fx.closePath();
+      fx.stroke();
+
+      // fingers
+      fx.beginPath();
+      fx.moveTo(x-6, y-14); fx.lineTo(x-8, y-24);
+      fx.moveTo(x-1, y-14); fx.lineTo(x-1, y-26);
+      fx.moveTo(x+4, y-14); fx.lineTo(x+6, y-24);
+      fx.stroke();
+
+      // data lines
+      fx.globalAlpha = 0.55;
+      fx.strokeStyle = 'rgba(0,255,102,.42)';
+      fx.beginPath();
+      fx.moveTo(x+18,y); fx.lineTo(x+58,y);
+      fx.moveTo(x+18,y+8); fx.lineTo(x+46,y+8);
+      fx.stroke();
+    }
+
+    fx.restore();
+
+    // FX flashes over grid cells
+    const now = performance.now();
+    const rect = cWorld.getBoundingClientRect();
+    const scaleX = cWorld.width / rect.width;
+    const scaleY = cWorld.height / rect.height;
+    const tileCss = tileSizeBase * zoom;
+    const tile = tileCss * scaleX;
+
+    for (const f of flashes){
+      const age = (now - f.t) / 260;
+      if (age > 1.2) continue;
+      const alpha = (1 - age) * 0.9;
+      const px = panX + f.gx*tile + tile*0.5;
+      const py = panY + f.gy*tile + tile*0.5;
+
+      fx.save();
+      fx.globalAlpha = alpha;
+      fx.strokeStyle = f.kind === 'smash' ? 'rgba(255,42,109,.85)' : 'rgba(0,255,102,.85)';
+      fx.lineWidth = 2;
+      fx.beginPath();
+      fx.arc(px, py, tile*0.55*(0.6+age), 0, Math.PI*2);
+      fx.stroke();
+      fx.restore();
+    }
+  }
+
+  function drawWorld(pointer){
+    const w = cWorld.width, h = cWorld.height;
+    ctx.clearRect(0,0,w,h);
+
+    const rect = cWorld.getBoundingClientRect();
+    const scaleX = w / rect.width;
+    const tileCss = tileSizeBase * zoom;
+    const tile = tileCss * scaleX;
+
+    // Visible range (cull)
+    const gx0 = Math.floor((-panX) / tile) - 2;
+    const gy0 = Math.floor((-panY) / tile) - 2;
+    const gx1 = Math.floor((w - panX) / tile) + 2;
+    const gy1 = Math.floor((h - panY) / tile) + 2;
+
+    // Grid
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = 'rgba(0,255,102,.12)';
+    ctx.lineWidth = 1;
+    for(let gx = gx0; gx <= gx1; gx++){
+      const x = Math.floor(panX + gx*tile) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for(let gy = gy0; gy <= gy1; gy++){
+      const y = Math.floor(panY + gy*tile) + 0.5;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Blocks (only visible)
+    // Simple shading for 3D-ish look without WebGL
+    for(let gy = gy0; gy <= gy1; gy++){
+      for(let gx = gx0; gx <= gx1; gx++){
+        const k = keyOf(gx,gy);
+        if (!blocks.has(k)) continue;
+        const x = panX + gx*tile;
+        const y = panY + gy*tile;
+
+        // block fill
+        ctx.save();
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = 'rgba(0,255,102,.16)';
+        ctx.fillRect(x+1, y+1, tile-2, tile-2);
+
+        // inner detail
+        ctx.globalAlpha = 0.95;
+        ctx.strokeStyle = 'rgba(0,255,102,.55)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x+2, y+2, tile-4, tile-4);
+
+        // "circuit" lines
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = 'rgba(0,255,102,.32)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + tile*0.18, y + tile*0.5);
+        ctx.lineTo(x + tile*0.82, y + tile*0.5);
+        ctx.moveTo(x + tile*0.5, y + tile*0.18);
+        ctx.lineTo(x + tile*0.5, y + tile*0.82);
+        ctx.stroke();
+
+        ctx.restore();
       }
-    } else if (mode === MODE_FIST){
-      if (t !== T_EMPTY){
-        world[i] = T_EMPTY;
-        markChunkDirtyByTile(tx,ty);
-      }
+    }
+
+    // Highlight targeted cell
+    if (pointer){
+      const x = panX + pointer.gx*tile;
+      const y = panY + pointer.gy*tile;
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = pointer.mode === 'break' ? 'rgba(255,42,109,.95)' : 'rgba(0,255,102,.95)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x+1.5, y+1.5, tile-3, tile-3);
+      ctx.restore();
+    }
+
+    // Subtle scanline-ish overlay on world canvas for hacker vibe
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = 'rgba(0,255,102,.08)';
+    for(let y=0; y<h; y+=6){
+      ctx.fillRect(0, y, w, 1);
+    }
+    ctx.restore();
+  }
+
+  function updateFPS(now){
+    const dt = now - tPrev; tPrev = now;
+    const fps = 1000 / Math.max(1, dt);
+    fpsSm = fpsSm*0.9 + fps*0.1;
+    fpsEl.textContent = "FPS: " + fpsSm.toFixed(0);
+  }
+
+  function render(now){
+    updateFPS(now);
+
+    // Use primary pointer (if any) for targeting
+    let primary = null;
+    for (const p of pointers.values()){ primary = p; break; }
+
+    drawWorld(primary);
+    drawHUDHandAndSkeleton(primary);
+
+    requestAnimationFrame(render);
+  }
+
+  // --- Camera
+  async function startCamera(){
+    if (!navigator.mediaDevices?.getUserMedia){
+      setStatus("Camera API not available", true);
+      return;
+    }
+    try{
+      setStatus("Requesting camera permission…");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 640 },
+          height:{ ideal: 480 },
+          frameRate: { ideal: 30, max: 30 }
+        },
+        audio: false
+      });
+      vid.srcObject = stream;
+      await vid.play();
+      camOn = true;
+      setStatus("CAM ONLINE // BLOCK OPS READY");
+      startBtn.textContent = "CAMERA RUNNING";
+      startBtn.disabled = true;
+    }catch(err){
+      setStatus("Camera blocked or unavailable", true);
+      console.error(err);
+    }
+  }
+
+  // --- Interactions
+  function armLongPress(p){
+    disarmLongPress();
+    longPressArmed = true;
+    longPressTimer = setTimeout(() => {
+      if (!longPressArmed) return;
+      // fist smash at pointer cell
+      const { gx, gy } = p;
+      smash(gx, gy, 1);
+      setStatus("FIST SMASH // BREAK RADIUS");
+      // prevent paint continuation
+      lastPaintCell = null;
+    }, 220);
+  }
+  function disarmLongPress(){
+    longPressArmed = false;
+    if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+  }
+
+  function handleActionAt(p, action){
+    const mode = modeSel.value;
+    p.mode = mode;
+
+    if (mode === 'move'){
+      return; // handled by gesture panning
+    }
+
+    if (action === 'place'){
+      placeBlock(p.gx, p.gy, 1);
+      flash(p.gx, p.gy, 1, 'place');
+      setStatus("PLACE // tap/drag to pave");
+    } else if (action === 'break'){
+      breakBlock(p.gx, p.gy);
+      flash(p.gx, p.gy, 1, 'hit');
+      setStatus("BREAK // double-tap or long-press");
     }
   }
 
   function onPointerDown(e){
     e.preventDefault();
-    canvas.setPointerCapture(e.pointerId);
-    pointerDown = true;
-    lastPointerId = e.pointerId;
-    lastPX = e.clientX;
-    lastPY = e.clientY;
+    touch.setPointerCapture(e.pointerId);
 
-    if (mode === MODE_HAND){
-      handDragStartCamX = camX;
-      handDragStartCamY = camY;
-      handDragStartX = e.clientX;
-      handDragStartY = e.clientY;
+    const cell = screenToWorldCell(e.clientX, e.clientY);
+    const p = {
+      id: e.pointerId,
+      x: e.clientX, y: e.clientY,
+      cx: cell.cx, cy: cell.cy,
+      gx: cell.gx, gy: cell.gy,
+      startX: e.clientX, startY: e.clientY,
+      lastX: e.clientX, lastY: e.clientY,
+      downT: performance.now(),
+      mode: modeSel.value,
+    };
+    pointers.set(e.pointerId, p);
+
+    // If two pointers: setup pinch
+    if (pointers.size === 2){
+      disarmLongPress();
+      const ps = Array.from(pointers.values());
+      pinchStartDist = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+      pinchStartZoom = zoom;
       return;
     }
 
-    // immediate edit
-    const rect = canvas.getBoundingClientRect();
-    const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const sy = (e.clientY - rect.top) * (canvas.height / rect.height);
-    const { wx, wy } = screenToWorld(sx,sy);
-    const { tx, ty } = worldToTile(wx,wy);
-    lastEditTX = tx; lastEditTY = ty;
-    applyEditAt(tx,ty);
+    // Single pointer: long-press "fist"
+    armLongPress(p);
+
+    // Tap action (place) will happen on up unless drag painting triggers
+    lastPaintCell = null;
   }
 
   function onPointerMove(e){
-    if (!pointerDown || e.pointerId !== lastPointerId) return;
+    if (!pointers.has(e.pointerId)) return;
     e.preventDefault();
 
-    if (mode === MODE_HAND){
-      const dx = (e.clientX - handDragStartX);
-      const dy = (e.clientY - handDragStartY);
-      camX = handDragStartCamX - dx / zoom;
-      camY = handDragStartCamY - dy / zoom;
+    const p = pointers.get(e.pointerId);
+    p.lastX = p.x; p.lastY = p.y;
+    p.x = e.clientX; p.y = e.clientY;
+
+    const cell = screenToWorldCell(e.clientX, e.clientY);
+    p.cx = cell.cx; p.cy = cell.cy;
+    p.gx = cell.gx; p.gy = cell.gy;
+
+    // Two-finger gestures: pan + pinch zoom
+    if (pointers.size === 2){
+      disarmLongPress();
+      const ps = Array.from(pointers.values());
+      const dx = (ps[0].x - ps[0].lastX + ps[1].x - ps[1].lastX) * 0.5;
+      const dy = (ps[0].y - ps[0].lastY + ps[1].y - ps[1].lastY) * 0.5;
+
+      // pan in canvas pixels
+      const rect = cWorld.getBoundingClientRect();
+      const scaleX = cWorld.width / rect.width;
+      panX += dx * scaleX;
+      panY += dy * scaleX;
+
+      const dist = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+      const ratio = dist / Math.max(1, pinchStartDist);
+      zoom = clamp(pinchStartZoom * ratio, 0.6, 2.0);
+      zoomRange.value = zoom.toFixed(2);
+      zoomLabel.textContent = zoom.toFixed(2) + "x";
       return;
     }
 
-    // throttled continuous editing
-    const now = performance.now();
-    if (now - lastEditTime < 12) return; // light throttle for weak phones
-    lastEditTime = now;
-
-    const rect = canvas.getBoundingClientRect();
-    const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const sy = (e.clientY - rect.top) * (canvas.height / rect.height);
-    const { wx, wy } = screenToWorld(sx,sy);
-    const { tx, ty } = worldToTile(wx,wy);
-
-    if (tx === lastEditTX && ty === lastEditTY) return;
-    lastEditTX = tx; lastEditTY = ty;
-    applyEditAt(tx,ty);
+    // Single pointer: if moving enough, it's a drag => pave/place continuously
+    const moved = Math.hypot(p.x - p.startX, p.y - p.startY);
+    if (moved > 6){
+      disarmLongPress();
+      const mode = modeSel.value;
+      if (mode === 'move'){
+        // pan
+        const rect = cWorld.getBoundingClientRect();
+        const scaleX = cWorld.width / rect.width;
+        panX += (p.x - p.lastX) * scaleX;
+        panY += (p.y - p.lastY) * scaleX;
+        setStatus("MOVE WORLD // drag");
+      } else if (mode === 'place'){
+        // pave (paint blocks)
+        const k = keyOf(p.gx, p.gy);
+        if (lastPaintCell !== k){
+          placeBlock(p.gx, p.gy, 1);
+          flash(p.gx, p.gy, 0.8, 'place');
+          lastPaintCell = k;
+          setStatus("PAVING // drag to lay blocks");
+        }
+      } else if (mode === 'break'){
+        // optional: drag break (but keep it light)
+        const k = keyOf(p.gx, p.gy);
+        if (lastPaintCell !== k){
+          breakBlock(p.gx, p.gy);
+          flash(p.gx, p.gy, 0.7, 'hit');
+          lastPaintCell = k;
+          setStatus("BREAK SWEEP // drag");
+        }
+      }
+    }
   }
 
   function onPointerUp(e){
-    if (e.pointerId !== lastPointerId) return;
-    pointerDown = false;
-    lastPointerId = null;
-  }
+    if (!pointers.has(e.pointerId)) return;
+    e.preventDefault();
 
-  canvas.addEventListener("pointerdown", onPointerDown, { passive:false });
-  canvas.addEventListener("pointermove", onPointerMove, { passive:false });
-  canvas.addEventListener("pointerup", onPointerUp, { passive:false });
-  canvas.addEventListener("pointercancel", onPointerUp, { passive:false });
+    const p = pointers.get(e.pointerId);
+    pointers.delete(e.pointerId);
 
-  // ---------- Rendering ----------
-  function resize(){
-    const rect = canvas.getBoundingClientRect();
-    const dprRaw = Math.max(1, Math.min(DPR_CAP, window.devicePixelRatio || 1));
-    const dpr = lowPower ? Math.min(1.0, dprRaw) : dprRaw; // low power forces 1.0
-    const w = Math.max(320, Math.floor(rect.width * dpr));
-    const h = Math.max(320, Math.floor(rect.height * dpr));
-    canvas.width = w;
-    canvas.height = h;
-  }
-  window.addEventListener("resize", resize);
-
-  function drawGridOverlay(){
-    if (!BACKGROUND_GRID) return;
-    ctx.save();
-    ctx.globalAlpha = 0.16;
-    ctx.strokeStyle = "#0e2a1f";
-    ctx.lineWidth = 1;
-
-    const w = canvas.width, h = canvas.height;
-    const spacing = 32;
-    for (let x=0; x<w; x+=spacing){
-      ctx.beginPath(); ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,h); ctx.stroke();
+    // if one pointer remains, reset pinch baseline
+    if (pointers.size < 2){
+      pinchStartDist = 0;
     }
-    for (let y=0; y<h; y+=spacing){
-      ctx.beginPath(); ctx.moveTo(0,y+0.5); ctx.lineTo(w,y+0.5); ctx.stroke();
-    }
-    ctx.restore();
-  }
 
-  function drawCursorGlyph(sx, sy){
-    // Skeleton / green hand glyph depending on mode
-    ctx.save();
-    ctx.translate(sx, sy);
-    ctx.scale(1.0, 1.0);
+    const dt = performance.now() - p.downT;
+    const moved = Math.hypot(p.x - p.startX, p.y - p.startY);
 
-    const neon = "rgba(37,255,122,.85)";
-    const cyan = "rgba(0,216,255,.55)";
+    // If it was a simple tap (no significant move), decide tap/double-tap
+    if (moved <= 6 && dt < 260){
+      disarmLongPress();
+      const now = performance.now();
+      const isDouble = (now - lastTapTime) < 300;
+      lastTapTime = now;
 
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    if (mode === MODE_FIST){
-      // simple skeleton fist icon
-      ctx.strokeStyle = neon;
-      ctx.lineWidth = 2;
-
-      // wrist bones
-      ctx.beginPath();
-      ctx.moveTo(-10, 10);
-      ctx.lineTo(-2, 2);
-      ctx.lineTo(10, 8);
-      ctx.stroke();
-
-      // knuckles
-      ctx.strokeStyle = "rgba(255,255,255,.65)";
-      ctx.lineWidth = 2;
-      for (let i=0;i<4;i++){
-        const x = -8 + i*5;
-        ctx.beginPath();
-        ctx.roundRect(x, -6, 4, 6, 2);
-        ctx.stroke();
+      if (isDouble){
+        // double-tap => break
+        breakBlock(p.gx, p.gy);
+        flash(p.gx, p.gy, 1.2, 'hit');
+        setStatus("DOUBLE TAP // BREAK");
+      }else{
+        // single tap depends on mode
+        const mode = modeSel.value;
+        if (mode === 'break'){
+          breakBlock(p.gx, p.gy);
+          flash(p.gx, p.gy, 1.0, 'hit');
+          setStatus("BREAK // tap");
+        } else if (mode === 'move'){
+          setStatus("MOVE WORLD // use drag");
+        } else {
+          placeBlock(p.gx, p.gy, 1);
+          flash(p.gx, p.gy, 1.0, 'place');
+          setStatus("PLACE // tap");
+        }
       }
-      // outline
-      ctx.strokeStyle = neon;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(-12, -10, 26, 24, 6);
-      ctx.stroke();
-    } else if (mode === MODE_HAND || mode === MODE_FINGER){
-      // neon green hand
-      ctx.fillStyle = "rgba(37,255,122,.16)";
-      ctx.strokeStyle = neon;
-      ctx.lineWidth = 2;
-
-      // palm
-      ctx.beginPath();
-      ctx.roundRect(-10, -2, 20, 20, 8);
-      ctx.fill(); ctx.stroke();
-
-      // fingers
-      ctx.strokeStyle = cyan;
-      ctx.lineWidth = 2;
-      for (let i=0;i<4;i++){
-        const fx = -8 + i*5;
-        ctx.beginPath();
-        ctx.moveTo(fx, -2);
-        ctx.lineTo(fx, -14);
-        ctx.stroke();
-      }
-      // thumb
-      ctx.beginPath();
-      ctx.moveTo(-10, 6);
-      ctx.lineTo(-18, 0);
-      ctx.stroke();
-    } else if (mode === MODE_PAVE){
-      // paving glyph: small trowel
-      ctx.strokeStyle = neon;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-14, 8);
-      ctx.lineTo(2, -8);
-      ctx.stroke();
-
-      ctx.fillStyle = "rgba(0,216,255,.20)";
-      ctx.beginPath();
-      ctx.roundRect(2, -14, 14, 10, 3);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,216,255,.55)";
-      ctx.stroke();
+    } else {
+      disarmLongPress();
     }
-
-    ctx.restore();
+    lastPaintCell = null;
   }
 
-  // polyfill for roundRect on older browsers
-  if (!CanvasRenderingContext2D.prototype.roundRect){
-    CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
-      r = Math.min(r, w/2, h/2);
-      this.beginPath();
-      this.moveTo(x+r, y);
-      this.arcTo(x+w, y, x+w, y+h, r);
-      this.arcTo(x+w, y+h, x, y+h, r);
-      this.arcTo(x, y+h, x, y, r);
-      this.arcTo(x, y, x+w, y, r);
-      this.closePath();
-      return this;
-    };
+  function onPointerCancel(e){
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+    disarmLongPress();
+    lastPaintCell = null;
   }
 
-  // FPS tracking + frame cap
-  let lastFrame = performance.now();
-  let fps = 60;
-  let accum = 0, frames = 0;
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
-  function frame(now){
-    const dt = now - lastFrame;
-    const minDt = 1000 / fpsCap;
-    if (dt < minDt){
-      requestAnimationFrame(frame);
-      return;
+  // --- UI events
+  startBtn.addEventListener('click', startCamera);
+
+  fsBtn.addEventListener('click', async () => {
+    try{
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    }catch(e){}
+  });
+
+  clearBtn.addEventListener('click', () => {
+    blocks.clear();
+    setStatus("WORLD CLEARED");
+  });
+
+  zoomRange.addEventListener('input', () => {
+    zoom = parseFloat(zoomRange.value);
+    zoomLabel.textContent = zoom.toFixed(2) + "x";
+  });
+
+  qSel.addEventListener('change', () => {
+    quality = parseFloat(qSel.value);
+    resizeCanvases();
+    setStatus("PERF SET // quality " + qSel.options[qSel.selectedIndex].text);
+  });
+
+  modeSel.addEventListener('change', () => {
+    setStatus("MODE // " + modeSel.options[modeSel.selectedIndex].text);
+  });
+
+  // Pointer events
+  touch.addEventListener('pointerdown', onPointerDown, { passive:false });
+  touch.addEventListener('pointermove', onPointerMove, { passive:false });
+  touch.addEventListener('pointerup', onPointerUp, { passive:false });
+  touch.addEventListener('pointercancel', onPointerCancel, { passive:false });
+
+  // Init
+  resizeCanvases();
+  window.addEventListener('resize', resizeCanvases);
+
+  // Seed a small “platform” so you see something immediately
+  for(let y=6;y<11;y++){
+    for(let x=5;x<15;x++){
+      blocks.set(keyOf(x,y),1);
     }
-    lastFrame = now;
-
-    accum += dt;
-    frames++;
-    if (accum >= 500){
-      fps = Math.round((frames * 1000) / accum);
-      accum = 0; frames = 0;
-    }
-
-    // clear
-    ctx.fillStyle = "#050709";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    // faint background grid
-    drawGridOverlay();
-
-    // view calculations
-    const w = canvas.width, h = canvas.height;
-    const viewScale = zoom; // tiles are drawn in TILE pixels; zoom scales world->screen
-
-    // visible tile bounds (in tile coords)
-    const leftWorld = camX - (w/2)/viewScale;
-    const topWorld  = camY - (h/2)/viewScale;
-    const rightWorld= camX + (w/2)/viewScale;
-    const botWorld  = camY + (h/2)/viewScale;
-
-    const minTX = Math.max(0, Math.floor(leftWorld / TILE) - 2);
-    const minTY = Math.max(0, Math.floor(topWorld  / TILE) - 2);
-    const maxTX = Math.min(WORLD_W-1, Math.floor(rightWorld/ TILE) + 2);
-    const maxTY = Math.min(WORLD_H-1, Math.floor(botWorld  / TILE) + 2);
-
-    const minCX = (minTX / CHUNK) | 0;
-    const minCY = (minTY / CHUNK) | 0;
-    const maxCX = (maxTX / CHUNK) | 0;
-    const maxCY = (maxTY / CHUNK) | 0;
-
-    // draw chunks
-    let visibleChunks = 0;
-    for (let cy = minCY; cy <= maxCY; cy++){
-      for (let cx = minCX; cx <= maxCX; cx++){
-        const obj = getChunk(cx,cy);
-        if (obj.dirty) redrawChunk(obj);
-
-        const chunkWorldX = cx * CHUNK * TILE;
-        const chunkWorldY = cy * CHUNK * TILE;
-
-        const sx = (w/2) + (chunkWorldX - camX) * viewScale;
-        const sy = (h/2) + (chunkWorldY - camY) * viewScale;
-
-        const size = CHUNK * TILE * viewScale;
-
-        // quick cull
-        if (sx > w || sy > h || (sx + size) < 0 || (sy + size) < 0) continue;
-
-        ctx.drawImage(obj.can, sx, sy, size, size);
-        visibleChunks++;
-      }
-    }
-
-    // draw world border glow (cheap)
-    ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = "rgba(37,255,122,.20)";
-    ctx.lineWidth = 2;
-    const worldPxW = WORLD_W * TILE;
-    const worldPxH = WORLD_H * TILE;
-    const bx = (w/2) + (0 - camX) * viewScale;
-    const by = (h/2) + (0 - camY) * viewScale;
-    ctx.strokeRect(bx+1, by+1, worldPxW*viewScale-2, worldPxH*viewScale-2);
-    ctx.restore();
-
-    // cursor glyph at last pointer position (if down) else center hint
-    const cursorX = pointerDown ? lastPX : (canvas.getBoundingClientRect().width/2);
-    const cursorY = pointerDown ? lastPY : (canvas.getBoundingClientRect().height/2);
-
-    // convert to internal canvas coords
-    const rect = canvas.getBoundingClientRect();
-    const sx = (cursorX) * (canvas.width / rect.width);
-    const sy = (cursorY) * (canvas.height / rect.height);
-    drawCursorGlyph(sx, sy);
-
-    // HUD
-    stat.textContent = `fps: ${fps} • chunks: ${visibleChunks}/${chunkCache.size} • mode: ${mode} • zoom: ${zoom.toFixed(2)}`;
-
-    requestAnimationFrame(frame);
   }
-
-  // ---------- Init ----------
-  setMode(MODE_FINGER);
-  seedWorld();
-  resize();
-  requestAnimationFrame(frame);
-
+  setStatus("READY // tap START CAMERA");
+  requestAnimationFrame(render);
 })();
 </script>
 </body>
